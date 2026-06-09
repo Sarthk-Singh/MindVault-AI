@@ -1,0 +1,15 @@
+{
+  "name": "amms",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace @amms/backend",
+    "dev:frontend": "npm run dev --workspace @amms/frontend",
+    "build:backend": "npm run build --workspace @amms/backend",
+    "build:frontend": "npm run build --workspace @amms/frontend"
+  }
+}

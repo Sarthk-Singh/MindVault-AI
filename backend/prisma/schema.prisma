@@ -1,0 +1,157 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
+}
+
+enum UserRole {
+  ADMIN
+  WORKSPACE_MANAGER
+  MEETING_OWNER
+  TEAM_MEMBER
+}
+
+enum MeetingStatus {
+  PENDING
+  PROCESSING
+  DONE
+}
+
+enum ActionItemStatus {
+  PENDING
+  IN_PROGRESS
+  DONE
+}
+
+model User {
+  id               String            @id @default(cuid())
+  name             String
+  email            String            @unique
+  password         String
+  role             UserRole
+  createdAt        DateTime          @default(now())
+  ownedWorkspaces  Workspace[]       @relation("WorkspaceOwner")
+  workspaceMembers WorkspaceMember[]
+  createdMeetings  Meeting[]         @relation("MeetingCreator")
+  auditLogs        AuditLog[]
+}
+
+model Workspace {
+  id        String            @id @default(cuid())
+  name      String
+  ownerId   String
+  owner     User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members   WorkspaceMember[]
+  meetings  Meeting[]
+  createdAt DateTime          @default(now())
+}
+
+model WorkspaceMember {
+  id          String     @id @default(cuid())
+  workspaceId String
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        UserRole
+  joinedAt    DateTime   @default(now())
+
+  @@unique([workspaceId, userId])
+}
+
+model Meeting {
+  id               String            @id @default(cuid())
+  title            String
+  workspaceId      String
+  workspace        Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdById      String
+  createdBy        User              @relation("MeetingCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  date             DateTime
+  status           MeetingStatus     @default(PENDING)
+  recordings       Recording[]
+  screenshots      Screenshot[]
+  transcriptChunks TranscriptChunk[]
+  summaries        Summary[]
+  decisions        Decision[]
+  actionItems      ActionItem[]
+  createdAt        DateTime          @default(now())
+}
+
+model Recording {
+  id        String   @id @default(cuid())
+  meetingId String
+  meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  fileUrl   String
+  mimeType  String
+  createdAt DateTime @default(now())
+}
+
+model TranscriptChunk {
+  id         String   @id @default(cuid())
+  meetingId  String
+  meeting    Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  content    String
+  chunkIndex Int
+  createdAt  DateTime @default(now())
+
+  @@unique([meetingId, chunkIndex])
+}
+
+model Summary {
+  id        String   @id @default(cuid())
+  meetingId String
+  meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  summary   String
+  keyPoints Json
+  createdAt DateTime @default(now())
+}
+
+model Decision {
+  id        String   @id @default(cuid())
+  meetingId String
+  meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  decision  String
+  createdAt DateTime @default(now())
+}
+
+model ActionItem {
+  id        String           @id @default(cuid())
+  meetingId String
+  meeting   Meeting          @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  task      String
+  assignee  String
+  status    ActionItemStatus @default(PENDING)
+  createdAt DateTime         @default(now())
+}
+
+model Screenshot {
+  id        String   @id @default(cuid())
+  meetingId String
+  meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  imageUrl  String
+  ocrText   String
+  summary   String
+  concepts  Json
+  createdAt DateTime @default(now())
+}
+
+model Embedding {
+  id         String                @id @default(cuid())
+  sourceId   String
+  sourceType String
+  vector     Unsupported("vector(768)")
+  createdAt  DateTime              @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  metadata  Json
+  createdAt DateTime @default(now())
+}
