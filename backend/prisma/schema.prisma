@@ -20,6 +20,7 @@ enum MeetingStatus {
   PENDING
   PROCESSING
   DONE
+  FAILED
 }
 
 enum ActionItemStatus {

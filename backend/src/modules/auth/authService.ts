@@ -26,10 +26,33 @@ const createTokens = (payload: JwtPayload) => {
   return { accessToken, refreshToken };
 };
 
+const DB_TIMEOUT_MS = 10_000;
+
+const runDbOperation = <T>(operation: Promise<T>, operationName: string) => {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new AppError(`Database request timed out while ${operationName}`, 503));
+    }, DB_TIMEOUT_MS);
+
+    operation
+      .then((result) => {
+        clearTimeout(timer);
+        resolve(result);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+};
+
 export const authService = {
   async register(name: string, email: string, password: string, role: UserRole = "TEAM_MEMBER") {
     try {
-      const existingUser = await prisma.user.findUnique({ where: { email } });
+      const existingUser = await runDbOperation(
+        prisma.user.findUnique({ where: { email } }),
+        "checking for an existing user"
+      );
 
       if (existingUser) {
         throw new AppError("Email is already registered", 409);
@@ -37,21 +60,24 @@ export const authService = {
 
       const hashedPassword = await bcrypt.hash(password, 12);
 
-      const user = await prisma.user.create({
-        data: {
-          name,
-          email,
-          password: hashedPassword,
-          role
-        },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-          createdAt: true
-        }
-      });
+      const user = await runDbOperation(
+        prisma.user.create({
+          data: {
+            name,
+            email,
+            password: hashedPassword,
+            role
+          },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            createdAt: true
+          }
+        }),
+        "creating the user account"
+      );
 
       return user;
     } catch (error) {
@@ -59,13 +85,23 @@ export const authService = {
         throw error;
       }
 
-      throw new AppError("Failed to register user");
+      const isDatabaseError =
+        error instanceof Error &&
+        /prisma|database|timed out|connect|ECONN|ENOTFOUND|ETIMEDOUT/i.test(error.message);
+
+      throw new AppError(
+        isDatabaseError ? "Database is currently unavailable. Please try again later." : "Failed to register user",
+        isDatabaseError ? 503 : 500
+      );
     }
   },
 
   async login(email: string, password: string) {
     try {
-      const user = await prisma.user.findUnique({ where: { email } });
+      const user = await runDbOperation(
+        prisma.user.findUnique({ where: { email } }),
+        "looking up the user account"
+      );
 
       if (!user) {
         throw new AppError("Invalid email or password", 401);
@@ -87,7 +123,14 @@ export const authService = {
         throw error;
       }
 
-      throw new AppError("Failed to login");
+      const isDatabaseError =
+        error instanceof Error &&
+        /prisma|database|timed out|connect|ECONN|ENOTFOUND|ETIMEDOUT/i.test(error.message);
+
+      throw new AppError(
+        isDatabaseError ? "Database is currently unavailable. Please try again later." : "Failed to login",
+        isDatabaseError ? 503 : 500
+      );
     }
   },
 

@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.meetingRouter = void 0;
+const express_1 = require("express");
+const meetingController_1 = require("./meetingController");
+const authMiddleware_1 = require("../auth/authMiddleware");
+exports.meetingRouter = (0, express_1.Router)();
+exports.meetingRouter.use(authMiddleware_1.verifyToken);
+exports.meetingRouter.post("/", meetingController_1.meetingController.createMeeting);
+exports.meetingRouter.get("/", meetingController_1.meetingController.getMeetings);
+exports.meetingRouter.get(":id", meetingController_1.meetingController.getMeetingById);
+exports.meetingRouter.patch(":id", meetingController_1.meetingController.updateMeeting);
+exports.meetingRouter.delete(":id", meetingController_1.meetingController.deleteMeeting);

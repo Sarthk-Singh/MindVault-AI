@@ -1,5 +1,5 @@
 function App() {
-  return <main>AMMS frontend</main>;
+  return <main>MindVault-AI frontend</main>;
 }
 
 export default App;
