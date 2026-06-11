@@ -54,5 +54,76 @@ exports.workspaceService = {
             }
             throw new errorHandler_1.AppError("Failed to invite workspace member");
         }
+    },
+    async listWorkspaces(userId) {
+        try {
+            return await prisma_1.prisma.workspace.findMany({
+                where: {
+                    members: {
+                        some: {
+                            userId
+                        }
+                    }
+                },
+                include: {
+                    members: {
+                        include: {
+                            user: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                    role: true
+                                }
+                            }
+                        }
+                    },
+                    meetings: true
+                }
+            });
+        }
+        catch {
+            throw new errorHandler_1.AppError("Failed to list workspaces");
+        }
+    },
+    async getWorkspaceById(id, userId) {
+        try {
+            const workspace = await prisma_1.prisma.workspace.findUnique({
+                where: { id },
+                include: {
+                    members: {
+                        include: {
+                            user: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                    role: true
+                                }
+                            }
+                        }
+                    },
+                    meetings: {
+                        orderBy: {
+                            date: "desc"
+                        }
+                    }
+                }
+            });
+            if (!workspace) {
+                throw new errorHandler_1.AppError("Workspace not found", 404);
+            }
+            const isMember = workspace.members.some((member) => member.userId === userId);
+            if (!isMember) {
+                throw new errorHandler_1.AppError("Forbidden", 403);
+            }
+            return workspace;
+        }
+        catch (error) {
+            if (error instanceof errorHandler_1.AppError) {
+                throw error;
+            }
+            throw new errorHandler_1.AppError("Failed to fetch workspace");
+        }
     }
 };

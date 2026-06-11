@@ -55,5 +55,80 @@ export const workspaceService = {
 
       throw new AppError("Failed to invite workspace member");
     }
+  },
+
+  async listWorkspaces(userId: string) {
+    try {
+      return await prisma.workspace.findMany({
+        where: {
+          members: {
+            some: {
+              userId
+            }
+          }
+        },
+        include: {
+          members: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  role: true
+                }
+              }
+            }
+          },
+          meetings: true
+        }
+      });
+    } catch {
+      throw new AppError("Failed to list workspaces");
+    }
+  },
+
+  async getWorkspaceById(id: string, userId: string) {
+    try {
+      const workspace = await prisma.workspace.findUnique({
+        where: { id },
+        include: {
+          members: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  role: true
+                }
+              }
+            }
+          },
+          meetings: {
+            orderBy: {
+              date: "desc"
+            }
+          }
+        }
+      });
+
+      if (!workspace) {
+        throw new AppError("Workspace not found", 404);
+      }
+
+      const isMember = workspace.members.some((member) => member.userId === userId);
+      if (!isMember) {
+        throw new AppError("Forbidden", 403);
+      }
+
+      return workspace;
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError("Failed to fetch workspace");
+    }
   }
 };
+

@@ -39,5 +39,33 @@ export const workspaceController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  async getWorkspaces(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        throw new AppError("Authentication is required", 401);
+      }
+
+      const workspaces = await workspaceService.listWorkspaces(req.user.id);
+      res.status(200).json({ workspaces });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getWorkspaceById(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        throw new AppError("Authentication is required", 401);
+      }
+
+      const { id } = req.params;
+      const workspace = await workspaceService.getWorkspaceById(String(id), req.user.id);
+      res.status(200).json({ workspace });
+    } catch (error) {
+      next(error);
+    }
   }
 };
+

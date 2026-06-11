@@ -10,7 +10,21 @@ export const meetingService = {
   },
 
   getMeetingById(id: string) {
-    return prisma.meeting.findUnique({ where: { id } });
+    return prisma.meeting.findUnique({
+      where: { id },
+      include: {
+        recordings: true,
+        screenshots: true,
+        transcriptChunks: {
+          orderBy: {
+            chunkIndex: "asc"
+          }
+        },
+        summaries: true,
+        decisions: true,
+        actionItems: true
+      }
+    });
   },
 
   updateMeeting(id: string, data: any) {

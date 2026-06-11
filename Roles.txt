@@ -1,0 +1,4 @@
+ADMIN: Represents a system or tenant administrator. They have full access to workspace creation, user management, global search audits, and system settings.
+WORKSPACE_MANAGER: Can invite users, edit workspace settings, and oversee all meetings in a specific workspace.
+MEETING_OWNER: Can create new meeting sessions, upload slide captures/audio files, and trigger AI summary extractions.
+TEAM_MEMBER: Can search, view transcripts, check action items, and read summaries within their shared workspaces.

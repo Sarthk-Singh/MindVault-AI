@@ -49,7 +49,13 @@ export const uploadService = {
     const result = await uploadToCloudinary(file.buffer, "amms/screenshots", "image");
 
     const screenshot = await prisma.screenshot.create({
-      data: { meetingId, imageUrl: result.url }
+      data: {
+        meetingId,
+        imageUrl: result.url,
+        ocrText: "",
+        summary: "",
+        concepts: []
+      }
     });
 
     await aiQueue.add("screenshot-analysis", {

@@ -41,7 +41,13 @@ exports.uploadService = {
             throw new errorHandler_1.AppError("Invalid image file", 400);
         const result = await (0, cloudinary_1.uploadToCloudinary)(file.buffer, "amms/screenshots", "image");
         const screenshot = await prisma_1.prisma.screenshot.create({
-            data: { meetingId, imageUrl: result.url }
+            data: {
+                meetingId,
+                imageUrl: result.url,
+                ocrText: "",
+                summary: "",
+                concepts: []
+            }
         });
         await queue_1.aiQueue.add("screenshot-analysis", {
             screenshotId: screenshot.id,

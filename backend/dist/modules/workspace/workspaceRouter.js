@@ -28,6 +28,8 @@ const validateBody = (schema) => (req, _res, next) => {
 };
 exports.workspaceRouter = (0, express_1.Router)();
 exports.workspaceRouter.use(authMiddleware_1.verifyToken);
+exports.workspaceRouter.get("/", workspaceController_1.workspaceController.getWorkspaces);
+exports.workspaceRouter.get("/:id", workspaceController_1.workspaceController.getWorkspaceById);
 exports.workspaceRouter.post("/", validateBody(createWorkspaceSchema), workspaceController_1.workspaceController.createWorkspace);
 exports.workspaceRouter.patch("/:id", validateBody(updateWorkspaceSchema), workspaceController_1.workspaceController.updateWorkspace);
 exports.workspaceRouter.post("/:id/invite", validateBody(inviteMemberSchema), workspaceController_1.workspaceController.inviteMember);

@@ -36,6 +36,9 @@ const validateBody =
 export const workspaceRouter = Router();
 
 workspaceRouter.use(verifyToken);
+workspaceRouter.get("/", workspaceController.getWorkspaces);
+workspaceRouter.get("/:id", workspaceController.getWorkspaceById);
 workspaceRouter.post("/", validateBody(createWorkspaceSchema), workspaceController.createWorkspace);
 workspaceRouter.patch("/:id", validateBody(updateWorkspaceSchema), workspaceController.updateWorkspace);
 workspaceRouter.post("/:id/invite", validateBody(inviteMemberSchema), workspaceController.inviteMember);
+

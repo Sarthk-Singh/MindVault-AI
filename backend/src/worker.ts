@@ -1,11 +1,11 @@
+import "dotenv/config";
 import { randomUUID } from "node:crypto";
 import { Worker } from "bullmq";
-import IORedis from "ioredis";
 import { prisma } from "./config/prisma";
 import { env } from "./config/env";
 import { geminiService } from "./services/geminiService";
+import { Prisma } from "@prisma/client";
 
-const connection = new IORedis(env.REDIS_URL);
 
 const chunkTranscript = (transcript: string, chunkSize = 500) => {
   const words = transcript.trim().split(/\s+/).filter(Boolean);
@@ -68,7 +68,7 @@ const processTranscribeJob = async (jobData: { recordingId: string; meetingId: s
     data: {
       meetingId: recording.meetingId,
       summary: summaryResult.summary,
-      keyPoints: summaryResult.keyPoints as unknown as Record<string, unknown>
+      keyPoints: summaryResult.keyPoints as unknown as Prisma.InputJsonValue
     }
   });
 
@@ -122,7 +122,7 @@ const worker = new Worker(
           data: {
             ocrText: analysis.ocrText,
             summary: analysis.summary,
-            concepts: analysis.concepts as unknown as Prisma.JsonValue
+            concepts: analysis.concepts as unknown as Prisma.InputJsonValue
           }
         });
 
@@ -155,7 +155,7 @@ const worker = new Worker(
       throw error;
     }
   },
-  { connection }
+  { connection: { url: env.REDIS_URL } }
 );
 
 worker.on("completed", (job) => console.log(`[worker] job ${job.id} completed`));

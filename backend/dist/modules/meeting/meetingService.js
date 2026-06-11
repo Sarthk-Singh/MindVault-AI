@@ -10,7 +10,21 @@ exports.meetingService = {
         return prisma_1.prisma.meeting.findMany({ where: { workspaceId } });
     },
     getMeetingById(id) {
-        return prisma_1.prisma.meeting.findUnique({ where: { id } });
+        return prisma_1.prisma.meeting.findUnique({
+            where: { id },
+            include: {
+                recordings: true,
+                screenshots: true,
+                transcriptChunks: {
+                    orderBy: {
+                        chunkIndex: "asc"
+                    }
+                },
+                summaries: true,
+                decisions: true,
+                actionItems: true
+            }
+        });
     },
     updateMeeting(id, data) {
         return prisma_1.prisma.meeting.update({ where: { id }, data });
