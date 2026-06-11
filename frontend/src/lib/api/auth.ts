@@ -11,14 +11,18 @@ export interface User {
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
+  user?: User;
 }
 
 export const authApi = {
   async login(data: any): Promise<AuthResponse> {
     const response = await api.post<AuthResponse>("/auth/login", data);
-    const { accessToken, refreshToken } = response.data;
-    localStorage.setItem("accessToken", accessToken);
-    localStorage.setItem("refreshToken", refreshToken);
+    const { accessToken, refreshToken, user } = response.data;
+    sessionStorage.setItem("accessToken", accessToken);
+    sessionStorage.setItem("refreshToken", refreshToken);
+    if (user && user.name) {
+      sessionStorage.setItem("userName", user.name);
+    }
     return response.data;
   },
 

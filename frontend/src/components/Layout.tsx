@@ -23,16 +23,16 @@ export const Layout: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("userName");
+    const savedUser = sessionStorage.getItem("userName");
     if (savedUser) {
       setUserName(savedUser);
     }
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("userName");
+    sessionStorage.removeItem("accessToken");
+    sessionStorage.removeItem("refreshToken");
+    sessionStorage.removeItem("userName");
     navigate("/login");
   };
 

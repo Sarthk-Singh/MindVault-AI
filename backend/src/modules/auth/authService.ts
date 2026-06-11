@@ -113,11 +113,21 @@ export const authService = {
         throw new AppError("Invalid email or password", 401);
       }
 
-      return createTokens({
+      const tokens = createTokens({
         id: user.id,
         email: user.email,
         role: user.role
       });
+
+      return {
+        ...tokens,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        }
+      };
     } catch (error) {
       if (error instanceof AppError) {
         throw error;

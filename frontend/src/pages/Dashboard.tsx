@@ -34,7 +34,7 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const userName = localStorage.getItem("userName") || "Alex Rivera";
+  const userName = sessionStorage.getItem("userName") || "Alex Rivera";
 
   // Forms
   const {

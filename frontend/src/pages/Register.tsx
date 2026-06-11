@@ -1,13 +1,12 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "../lib/zodResolver";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
 import { authApi } from "../lib/api/auth";
-import { BrainCircuit, Eye, EyeOff } from "lucide-react";
-import { gsap } from "gsap";
-import { NeuralCanvas } from "../components/NeuralCanvas";
+import { Eye, EyeOff } from "lucide-react";
+import { ShaderBackground } from "../components/ShaderBackground";
 import { CustomCursor } from "../components/CustomCursor";
 
 const registerSchema = z.object({
@@ -22,8 +21,6 @@ type RegisterInput = z.infer<typeof registerSchema>;
 export const Register: React.FC = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const submitBtnRef = useRef<HTMLButtonElement>(null);
 
   const {
     register,
@@ -39,7 +36,7 @@ export const Register: React.FC = () => {
   const registerMutation = useMutation({
     mutationFn: authApi.register,
     onSuccess: (_, variables) => {
-      localStorage.setItem("userName", variables.name || "Alex Rivera");
+      sessionStorage.setItem("userName", variables.name || "Alex Rivera");
       navigate("/");
     }
   });
@@ -48,197 +45,196 @@ export const Register: React.FC = () => {
     registerMutation.mutate(data);
   };
 
-  useEffect(() => {
-    // 3D Card Tilt Effect
-    const onMouseMove = (e: MouseEvent) => {
-      if (!cardRef.current) return;
-      const xRotation = (e.clientY - window.innerHeight / 2) / 60;
-      const yRotation = (e.clientX - window.innerWidth / 2) / 60;
-      gsap.to(cardRef.current, {
-        rotationX: -xRotation,
-        rotationY: yRotation,
-        transformPerspective: 1000,
-        duration: 0.5,
-        ease: "power1.out"
-      });
-    };
-
-    window.addEventListener("mousemove", onMouseMove);
-
-    // Magnetic Button Effect
-    const btn = submitBtnRef.current;
-    if (btn) {
-      const onBtnMouseMove = (e: MouseEvent) => {
-        const rect = btn.getBoundingClientRect();
-        const x = e.clientX - rect.left - rect.width / 2;
-        const y = e.clientY - rect.top - rect.height / 2;
-        gsap.to(btn, {
-          x: x * 0.3,
-          y: y * 0.3,
-          duration: 0.3,
-          ease: "power2.out"
-        });
-      };
-
-      const onBtnMouseLeave = () => {
-        gsap.to(btn, {
-          x: 0,
-          y: 0,
-          duration: 0.5,
-          ease: "elastic.out(1, 0.3)"
-        });
-      };
-
-      btn.addEventListener("mousemove", onBtnMouseMove);
-      btn.addEventListener("mouseleave", onBtnMouseLeave);
-
-      return () => {
-        window.removeEventListener("mousemove", onMouseMove);
-        btn.removeEventListener("mousemove", onBtnMouseMove);
-        btn.removeEventListener("mouseleave", onBtnMouseLeave);
-      };
-    }
-
-    return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-    };
-  }, []);
-
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden bg-background text-slate-200">
-      <div className="mesh-gradient" />
-      <NeuralCanvas opacity={0.4} particleCount={60} />
+    <div className="min-h-screen relative flex items-center justify-center p-6 text-slate-200">
+      <ShaderBackground />
       <CustomCursor />
 
-      <div
-        ref={cardRef}
-        className="w-full max-w-[460px] glass-card rounded-[32px] p-10 relative z-10"
-        style={{
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.02)"
-        }}
-      >
-        <div className="flex flex-col items-center mb-8 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#0ea5e9] to-[#a855f7] flex items-center justify-center mb-4 shadow-lg shadow-blue-500/20">
-            <BrainCircuit className="text-3xl text-white w-8 h-8" />
-          </div>
-          <h1 className="text-3xl font-semibold text-white tracking-tight mb-2 font-display">Create Account</h1>
-          <p className="text-slate-400 text-sm font-light">Set up your profile to start tracking meetings</p>
-        </div>
-
-        {registerMutation.isError && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-error text-xs rounded-xl">
-            {(registerMutation.error as any)?.response?.data?.message || "Failed to create account. Please try again."}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          {/* Full Name */}
-          <div className="input-group relative">
-            <input
-              type="text"
-              id="name"
-              placeholder=" "
-              className="w-full bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-3.5 text-slate-200 outline-none input-glow transition-all duration-300 peer text-sm"
-              {...register("name")}
-            />
-            <label htmlFor="name" className="floating-label absolute left-4 top-3.5 text-slate-500 text-sm">
-              Full Name
-            </label>
-            {errors.name && (
-              <p className="text-error text-xs mt-1 pl-1">
-                {errors.name.message}
+      {/* Layout Container */}
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 w-full max-w-[1200px] items-center gap-10">
+        
+        {/* Left Side: Branding */}
+        <div className="flex flex-col justify-center p-6 text-white">
+          <div className="space-y-8 max-w-2xl w-full">
+            <div className="flex items-center gap-3 animate-reveal stagger-1">
+              <span className="material-symbols-outlined text-4xl text-blue-400" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+              <h1 className="text-2xl font-bold tracking-tight">MindVault-AI</h1>
+            </div>
+            
+            <div className="space-y-4">
+              <h2 className="text-4xl md:text-5xl font-bold leading-tight font-display text-white animate-reveal stagger-2">
+                Elevate your workspace with <span className="text-blue-400">prescient intelligence.</span>
+              </h2>
+              <p className="text-lg text-white/70 animate-reveal stagger-3 font-light leading-relaxed">
+                Join the next generation of enterprise management. MindVault-AI transforms meetings into actionable intelligence automatically.
               </p>
-            )}
-          </div>
-
-          {/* Email Field */}
-          <div className="input-group relative">
-            <input
-              type="email"
-              id="email"
-              placeholder=" "
-              className="w-full bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-3.5 text-slate-200 outline-none input-glow transition-all duration-300 peer text-sm"
-              {...register("email")}
-            />
-            <label htmlFor="email" className="floating-label absolute left-4 top-3.5 text-slate-500 text-sm">
-              Work Email
-            </label>
-            {errors.email && (
-              <p className="text-error text-xs mt-1 pl-1">
-                {errors.email.message}
-              </p>
-            )}
-          </div>
-
-          {/* Password Field */}
-          <div className="input-group relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              id="password"
-              placeholder=" "
-              className="w-full bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-3.5 pr-12 text-slate-200 outline-none input-glow transition-all duration-300 peer text-sm"
-              {...register("password")}
-            />
-            <label htmlFor="password" className="floating-label absolute left-4 top-3.5 text-slate-500 text-sm">
-              Password
-            </label>
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-3.5 text-slate-500 hover:text-white transition-colors"
-            >
-              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </button>
-            {errors.password && (
-              <p className="text-error text-xs mt-1 pl-1">
-                {errors.password.message}
-              </p>
-            )}
-          </div>
-
-          {/* Role selector dropdown */}
-          <div className="input-group relative">
-            <select
-              id="role"
-              required
-              className="w-full bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-3.5 text-slate-200 outline-none input-glow transition-all duration-300 peer text-sm appearance-none cursor-pointer"
-              {...register("role")}
-            >
-              <option value="TEAM_MEMBER" className="bg-slate-900 text-slate-200">TEAM_MEMBER</option>
-              <option value="WORKSPACE_MANAGER" className="bg-slate-900 text-slate-200">WORKSPACE_MANAGER</option>
-              <option value="MEETING_OWNER" className="bg-slate-900 text-slate-200">MEETING_OWNER</option>
-              <option value="ADMIN" className="bg-slate-900 text-slate-200">ADMIN</option>
-            </select>
-            <label htmlFor="role" className="floating-label absolute left-4 top-3.5 text-slate-500 text-sm">
-              Organization Role
-            </label>
-            <div className="absolute right-4 top-3.5 text-slate-500 pointer-events-none">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-              </svg>
+            </div>
+            
+            <div className="flex items-center gap-4 animate-reveal stagger-4 pt-4">
+              <div className="flex -space-x-2">
+                <img className="w-10 h-10 rounded-full border-2 border-slate-900 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAA0jcen4mehnxDnEC3M-XTFwRMj5mZRm82S62lZKeQFlAFqUr9-cG42ZW-KknfSolbhpQSJTFAFewgiMTknq0ZtvLinwg_U8jcEsGngl6WKP2txyItFMsVq0pI0sCVu7q1-tHnWwFWgQZe8XVu9fCXNJIMQtorJWXUVmAmSYldBZLJCe7qD-plSLnDR5NuM7XY9AWHxkwe-gCMqEdBxvcY0sjP_edcZQPtnps8l3OJCmvTju0CmOsJInreXP_X9HKvz53D8Zn7qKc" alt="user 1"/>
+                <img className="w-10 h-10 rounded-full border-2 border-slate-900 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB9pFVzr0onpjIFRFOF_ueR2CcQm01Nog364JQQj5n1zJSobs27b_l5YRUfW8ePxifEJare5ICxRy4UlHCz5nlQ05tU0beMz6UN1jfImHN8Bn4_wYKr-4-qJ7fZfIhtJtl9-qBPuq1KBbj3KDqDB6HETUc5wDV035KXoSchj_HuarU-Q43z5Q3JCTkdzpcw8Dv50YMWeFrVAf0uhF-F7ekg7rohxhZfFTBynlKF0ecvcPctMJSXjVVHGl6-DTJyrL4IwxH6IGogwSU" alt="user 2"/>
+                <div className="w-10 h-10 rounded-full border-2 border-slate-900 bg-blue-600 flex items-center justify-center text-[10px] font-bold text-white animate-pulse">12K+</div>
+              </div>
+              <p className="text-sm text-white/50 italic font-light">Trusted by industry leaders worldwide.</p>
             </div>
           </div>
+        </div>
 
-          {/* Submit Button */}
-          <button
-            ref={submitBtnRef}
-            type="submit"
-            disabled={registerMutation.isPending}
-            className="pulse-btn magnetic-target group relative w-full py-4 rounded-xl bg-gradient-to-r from-[#0ea5e9] to-[#a855f7] text-white font-semibold text-sm shadow-2xl shadow-blue-500/30 transition-all active:scale-[0.98] overflow-hidden"
-          >
-            <span className="relative z-10 flex items-center justify-center gap-2">
-              {registerMutation.isPending ? "Creating account..." : "Register"}
-            </span>
-            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          </button>
-        </form>
+        {/* Right Side: Floating Registration Card */}
+        <div className="flex items-center justify-center lg:justify-end animate-reveal stagger-5">
+          <div className="w-full max-w-[480px] glass-card rounded-[24px] p-8 md:p-10 shadow-2xl">
+            <div className="mb-8">
+              <h3 className="text-2xl font-semibold text-white mb-1">Create an account</h3>
+              <p className="text-sm text-white/60">Enter your details to get started with MindVault-AI.</p>
+            </div>
 
-        <p className="mt-8 text-center text-slate-500 text-xs">
-          Already have an account?{" "}
-          <Link to="/login" className="text-sky-400 hover:text-sky-300 font-medium ml-1">
-            Login
-          </Link>
-        </p>
+            {registerMutation.isError && (
+              <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl">
+                {(registerMutation.error as any)?.response?.data?.message || "Failed to create account. Please try again."}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+              {/* Name Field */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-white/80 block" htmlFor="name">Full Name</label>
+                <div className="relative group">
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/40 transition-colors group-focus-within:text-blue-400">person</span>
+                  <input 
+                    className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-white/20 input-glow transition-all" 
+                    id="name" 
+                    placeholder="John Doe" 
+                    type="text"
+                    {...register("name")}
+                  />
+                </div>
+                {errors.name && (
+                  <p className="text-red-400 text-xs mt-1 pl-1">{errors.name.message}</p>
+                )}
+              </div>
+
+              {/* Email Field */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-white/80 block" htmlFor="email">Work Email</label>
+                <div className="relative group">
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/40 transition-colors group-focus-within:text-blue-400">mail</span>
+                  <input 
+                    className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-white/20 input-glow transition-all" 
+                    id="email" 
+                    placeholder="name@company.com" 
+                    type="email"
+                    {...register("email")}
+                  />
+                </div>
+                {errors.email && (
+                  <p className="text-red-400 text-xs mt-1 pl-1">{errors.email.message}</p>
+                )}
+              </div>
+
+              {/* Password Field */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-white/80 block" htmlFor="password">Password</label>
+                <div className="relative group">
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/40 transition-colors group-focus-within:text-blue-400">lock</span>
+                  <input 
+                    className="w-full pl-12 pr-12 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-white/20 input-glow transition-all" 
+                    id="password" 
+                    placeholder="••••••••" 
+                    type={showPassword ? "text" : "password"}
+                    {...register("password")}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="text-red-400 text-xs mt-1 pl-1">{errors.password.message}</p>
+                )}
+              </div>
+
+              {/* Role Dropdown */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-white/80 block" htmlFor="role">Organization Role</label>
+                <div className="relative group">
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/40 transition-colors group-focus-within:text-blue-400">badge</span>
+                  <select 
+                    className="w-full pl-12 pr-10 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white input-glow appearance-none transition-all cursor-pointer" 
+                    id="role"
+                    {...register("role")}
+                  >
+                    <option className="bg-slate-900 text-slate-200" value="TEAM_MEMBER">Team Member</option>
+                    <option className="bg-slate-900 text-slate-200" value="WORKSPACE_MANAGER">Workspace Manager</option>
+                    <option className="bg-slate-900 text-slate-200" value="MEETING_OWNER">Meeting Owner</option>
+                    <option className="bg-slate-900 text-slate-200" value="ADMIN">Administrator</option>
+                  </select>
+                  <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none">expand_more</span>
+                </div>
+              </div>
+
+              {/* Terms & Conditions */}
+              <div className="flex items-center gap-2">
+                <input className="w-4 h-4 rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/20 cursor-pointer" id="terms" type="checkbox" required />
+                <label className="text-xs text-white/60 cursor-pointer" htmlFor="terms">
+                  I agree to the <a className="text-blue-400 font-semibold hover:underline" href="#">Terms</a> and <a className="text-blue-400 font-semibold hover:underline" href="#">Privacy</a>.
+                </label>
+              </div>
+
+              {/* Register Button */}
+              <button 
+                type="submit"
+                disabled={registerMutation.isPending}
+                className="btn-ripple w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-80 text-white py-3.5 rounded-xl text-sm font-semibold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] cursor-pointer"
+              >
+                {registerMutation.isPending ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Creating Account...
+                  </span>
+                ) : "Register"}
+              </button>
+            </form>
+
+            {/* Footer Links */}
+            <div className="mt-8 text-center space-y-6">
+              <p className="text-sm text-white/60">
+                Already have an account? 
+                <Link className="text-blue-400 font-semibold hover:underline ml-1" to="/login">Login</Link>
+              </p>
+              <div className="relative flex items-center py-2">
+                <div className="flex-grow border-t border-white/10"></div>
+                <span className="flex-shrink mx-4 text-xs text-white/30 uppercase tracking-widest">or</span>
+                <div className="flex-grow border-t border-white/10"></div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <button 
+                  type="button"
+                  onClick={() => navigate("/")}
+                  className="flex items-center justify-center gap-2 py-2 border border-white/10 rounded-xl hover:bg-white/5 transition-all text-white/80 text-sm cursor-pointer"
+                >
+                  <img alt="Google" className="w-4 h-4" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBS-_58s_7rMMZtAmcSoD-pQSx7RBC4txWHtwDiHR82Hre9iYVeXSUNXOeiryFDNfQSCW6JlY4Eu0_3M2Dj9dEFvLEa4M4_DfHMkgdc2hfVzejjmE_gZ8e3SCerZ4nKkjd0PJ-PbegZJamHkE9uGfL_tHIUpZa1lOTB76A2q9om4CFsHZnifxMGf4ZGTJYrU7g9C-ACGIjvPxwqrXCD2rmCr8g8gMaBph1ODNwHaiwMyz-Azq93_OWFn7hF-5GvvTI43kGvQiJUcDM"/>
+                  <span>Google</span>
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => navigate("/")}
+                  className="flex items-center justify-center gap-2 py-2 border border-white/10 rounded-xl hover:bg-white/5 transition-all text-white/80 text-sm cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-lg">work</span>
+                  <span>SSO</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
       </div>
     </div>
   );
