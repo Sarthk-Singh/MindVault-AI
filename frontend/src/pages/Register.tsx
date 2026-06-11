@@ -36,25 +36,11 @@ export const Register: React.FC = () => {
     }
   });
 
-  const loginMutation = useMutation({
-    mutationFn: authApi.login,
-    onSuccess: (data, variables) => {
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
-      localStorage.setItem("userName", variables.name || "Alex Rivera");
-      navigate("/");
-    }
-  });
-
   const registerMutation = useMutation({
     mutationFn: authApi.register,
     onSuccess: (_, variables) => {
-      // Automatically log in after registration
-      loginMutation.mutate({
-        email: variables.email,
-        password: variables.password,
-        name: variables.name
-      });
+      localStorage.setItem("userName", variables.name || "Alex Rivera");
+      navigate("/");
     }
   });
 
@@ -237,11 +223,11 @@ export const Register: React.FC = () => {
           <button
             ref={submitBtnRef}
             type="submit"
-            disabled={registerMutation.isPending || loginMutation.isPending}
+            disabled={registerMutation.isPending}
             className="pulse-btn magnetic-target group relative w-full py-4 rounded-xl bg-gradient-to-r from-[#0ea5e9] to-[#a855f7] text-white font-semibold text-sm shadow-2xl shadow-blue-500/30 transition-all active:scale-[0.98] overflow-hidden"
           >
             <span className="relative z-10 flex items-center justify-center gap-2">
-              {registerMutation.isPending || loginMutation.isPending ? "Creating account..." : "Register"}
+              {registerMutation.isPending ? "Creating account..." : "Register"}
             </span>
             <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </button>

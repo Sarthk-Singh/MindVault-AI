@@ -8,6 +8,6 @@ meetingRouter.use(verifyToken);
 
 meetingRouter.post("/", meetingController.createMeeting);
 meetingRouter.get("/", meetingController.getMeetings);
-meetingRouter.get(":id", meetingController.getMeetingById);
-meetingRouter.patch(":id", meetingController.updateMeeting);
-meetingRouter.delete(":id", meetingController.deleteMeeting);
+meetingRouter.get("/:id", meetingController.getMeetingById);
+meetingRouter.patch("/:id", meetingController.updateMeeting);
+meetingRouter.delete("/:id", meetingController.deleteMeeting);

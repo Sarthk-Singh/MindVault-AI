@@ -16,12 +16,19 @@ export interface AuthResponse {
 export const authApi = {
   async login(data: any): Promise<AuthResponse> {
     const response = await api.post<AuthResponse>("/auth/login", data);
+    const { accessToken, refreshToken } = response.data;
+    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
     return response.data;
   },
 
-  async register(data: any): Promise<User> {
-    const response = await api.post<{ user: User }>("/auth/register", data);
-    return response.data.user;
+  async register(data: any): Promise<AuthResponse> {
+    await api.post<{ user: User }>("/auth/register", data);
+    const tokens = await authApi.login({
+      email: data.email,
+      password: data.password
+    });
+    return tokens;
   },
 
   async refresh(refreshToken: string): Promise<AuthResponse> {
