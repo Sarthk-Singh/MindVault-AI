@@ -13,7 +13,12 @@ export const uploadToCloudinary = async (
   resourceType: "image" | "video" | "auto" = "auto"
 ): Promise<{ url: string; publicId: string }> => {
   // Use data URI upload to avoid streams dependency
-  const mime = resourceType === "auto" ? "application/octet-stream" : resourceType;
+  let mime = "application/octet-stream";
+  if (resourceType === "image") {
+    mime = "image/png";
+  } else if (resourceType === "video") {
+    mime = "video/mp4";
+  }
   const dataUri = `data:${mime};base64,${fileBuffer.toString("base64")}`;
 
   const res = await cloudinary.uploader.upload(dataUri, {

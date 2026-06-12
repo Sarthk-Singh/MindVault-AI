@@ -1,8 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import axios from "axios";
 import { env } from "../config/env";
 
 const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 const cleanJsonResponse = (text: string) => {
   return text
@@ -45,39 +46,14 @@ const generateJsonWithRetry = async <T>(prompt: string, fallbackPrompt?: string)
 
 export const geminiService = {
   async analyzeScreenshot(imageUrl: string): Promise<{ ocrText: string; summary: string; concepts: string[] }> {
-    const response = await fetch(imageUrl);
+    const prompt = "Analyze this image from a meeting. Extract: 1) all visible text (OCR), 2) a 2-3 sentence summary of what this visual shows, 3) a list of key concepts or topics. Return only valid JSON with keys: ocrText (string), summary (string), concepts (string array). No markdown, no backticks.";
+    const mimeType = "image/jpeg";
 
-    if (!response.ok) {
-      throw new Error(`Failed to download image from Cloudinary: ${response.status}`);
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const mimeType = response.headers.get("content-type") || "image/jpeg";
-
-    const prompt = [
-      "Analyze this image from a meeting.",
-      "Extract: 1) all visible text (OCR), 2) a 2-3 sentence summary of what this visual shows, 3) a list of key concepts or topics.",
-      "Return valid JSON only with keys 'ocrText', 'summary', and 'concepts'."
-    ].join("\n");
-
-    const result = await model.generateContent([
-      { text: prompt },
-      {
-        inlineData: {
-          mimeType,
-          data: buffer.toString("base64")
-        }
-      }
-    ]);
-
-    const text = result.response.text();
-
-    try {
-      return parseJsonResponse<{ ocrText: string; summary: string; concepts: string[] }>(text);
-    } catch (error) {
-      const retryResult = await model.generateContent([
-        { text: `${prompt}\n\nReturn valid JSON only.` },
+    const executeAnalysis = async () => {
+      const response = await axios.get(imageUrl, { responseType: "arraybuffer" });
+      const buffer = Buffer.from(response.data);
+      const result = await model.generateContent([
+        { text: prompt },
         {
           inlineData: {
             mimeType,
@@ -85,8 +61,15 @@ export const geminiService = {
           }
         }
       ]);
+      const text = result.response.text();
+      return parseJsonResponse<{ ocrText: string; summary: string; concepts: string[] }>(text);
+    };
 
-      return parseJsonResponse<{ ocrText: string; summary: string; concepts: string[] }>(retryResult.response.text());
+    try {
+      return await executeAnalysis();
+    } catch (error) {
+      console.warn("[geminiService] analyzeScreenshot failed, retrying once...", error);
+      return await executeAnalysis();
     }
   },
 

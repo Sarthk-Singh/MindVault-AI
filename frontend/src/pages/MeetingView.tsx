@@ -40,6 +40,9 @@ export const MeetingView: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["meeting", id] });
       alert("Transcription job queued successfully!");
+    },
+    onError: (err: any) => {
+      alert(err?.response?.data?.message || "Failed to start transcription job.");
     }
   });
 
@@ -48,6 +51,9 @@ export const MeetingView: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["meeting", id] });
       alert("Summarization and Action Item extraction job queued successfully!");
+    },
+    onError: (err: any) => {
+      alert(err?.response?.data?.message || "Failed to start summarization job.");
     }
   });
 
@@ -238,14 +244,25 @@ export const MeetingView: React.FC = () => {
             ) : (
               <div className="text-center flex flex-col items-center justify-center h-full gap-4">
                 <FileText className="w-12 h-12 text-slate-600" />
-                <p className="text-slate-400 text-sm">No transcript chunks available.</p>
-                <button
-                  onClick={() => transcribeMutation.mutate()}
-                  disabled={transcribeMutation.isPending}
-                  className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
-                >
-                  {transcribeMutation.isPending ? "Starting Transcription..." : "Run AI Transcription"}
-                </button>
+                {meeting.recordings && meeting.recordings.length > 0 ? (
+                  <>
+                    <p className="text-slate-400 text-sm">No transcript chunks available.</p>
+                    <button
+                      onClick={() => transcribeMutation.mutate()}
+                      disabled={transcribeMutation.isPending}
+                      className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
+                    >
+                      {transcribeMutation.isPending ? "Starting Transcription..." : "Run AI Transcription"}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-slate-400 text-sm">No recordings uploaded yet.</p>
+                    <p className="text-slate-500 text-xs max-w-md">
+                      Please upload an audio or video recording first to generate and run AI transcription for this meeting.
+                    </p>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -285,14 +302,25 @@ export const MeetingView: React.FC = () => {
             ) : (
               <div className="glass-panel rounded-[32px] p-12 text-center flex flex-col items-center gap-4">
                 <Sparkles className="w-12 h-12 text-purple-400" />
-                <p className="text-slate-400 text-sm">No AI summaries generated yet.</p>
-                <button
-                  onClick={() => summarizeMutation.mutate()}
-                  disabled={summarizeMutation.isPending}
-                  className="px-5 py-2.5 bg-gradient-to-r from-[#0ea5e9] to-[#a855f7] text-white rounded-xl text-xs font-semibold shadow-lg shadow-blue-500/10 hover:opacity-90 transition-all disabled:opacity-50"
-                >
-                  {summarizeMutation.isPending ? "Generating Summary..." : "Generate AI Summary"}
-                </button>
+                {meeting.recordings && meeting.recordings.length > 0 ? (
+                  <>
+                    <p className="text-slate-400 text-sm">No AI summaries generated yet.</p>
+                    <button
+                      onClick={() => summarizeMutation.mutate()}
+                      disabled={summarizeMutation.isPending}
+                      className="px-5 py-2.5 bg-gradient-to-r from-[#0ea5e9] to-[#a855f7] text-white rounded-xl text-xs font-semibold shadow-lg shadow-blue-500/10 hover:opacity-90 transition-all disabled:opacity-50"
+                    >
+                      {summarizeMutation.isPending ? "Generating Summary..." : "Generate AI Summary"}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-slate-400 text-sm">No recordings uploaded yet.</p>
+                    <p className="text-slate-500 text-xs max-w-md">
+                      Please upload an audio or video recording first to generate a summary for this meeting.
+                    </p>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -346,8 +374,18 @@ export const MeetingView: React.FC = () => {
                 </tbody>
               </table>
             ) : (
-              <div className="p-12 text-center text-slate-400 text-sm">
-                No Action Items extracted yet. Generate an AI Summary to extract them.
+              <div className="p-12 text-center text-slate-400 text-sm flex flex-col items-center gap-2">
+                <p>No Action Items extracted yet.</p>
+                {!(meeting.recordings && meeting.recordings.length > 0) && (
+                  <p className="text-slate-500 text-xs">
+                    Please upload an audio or video recording first to extract action items.
+                  </p>
+                )}
+                {meeting.recordings && meeting.recordings.length > 0 && (
+                  <p className="text-slate-500 text-xs">
+                    Generate an AI Summary in the Summary tab to extract action items.
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -368,8 +406,18 @@ export const MeetingView: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div className="col-span-2 text-center py-16 text-slate-400 text-sm glass-panel rounded-3xl">
-                No decisions logged for this meeting.
+              <div className="col-span-2 text-center py-16 text-slate-400 text-sm glass-panel rounded-3xl flex flex-col items-center gap-2">
+                <p>No decisions logged for this meeting.</p>
+                {!(meeting.recordings && meeting.recordings.length > 0) && (
+                  <p className="text-slate-500 text-xs">
+                    Please upload an audio or video recording first to extract decisions.
+                  </p>
+                )}
+                {meeting.recordings && meeting.recordings.length > 0 && (
+                  <p className="text-slate-500 text-xs">
+                    Generate an AI Summary in the Summary tab to extract decisions.
+                  </p>
+                )}
               </div>
             )}
           </div>

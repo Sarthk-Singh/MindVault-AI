@@ -1,7 +1,11 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.geminiService = void 0;
 const generative_ai_1 = require("@google/generative-ai");
+const axios_1 = __importDefault(require("axios"));
 const env_1 = require("../config/env");
 const genAI = new generative_ai_1.GoogleGenerativeAI(env_1.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
@@ -37,34 +41,13 @@ const generateJsonWithRetry = async (prompt, fallbackPrompt) => {
 };
 exports.geminiService = {
     async analyzeScreenshot(imageUrl) {
-        const response = await fetch(imageUrl);
-        if (!response.ok) {
-            throw new Error(`Failed to download image from Cloudinary: ${response.status}`);
-        }
-        const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const mimeType = response.headers.get("content-type") || "image/jpeg";
-        const prompt = [
-            "Analyze this image from a meeting.",
-            "Extract: 1) all visible text (OCR), 2) a 2-3 sentence summary of what this visual shows, 3) a list of key concepts or topics.",
-            "Return valid JSON only with keys 'ocrText', 'summary', and 'concepts'."
-        ].join("\n");
-        const result = await model.generateContent([
-            { text: prompt },
-            {
-                inlineData: {
-                    mimeType,
-                    data: buffer.toString("base64")
-                }
-            }
-        ]);
-        const text = result.response.text();
-        try {
-            return parseJsonResponse(text);
-        }
-        catch (error) {
-            const retryResult = await model.generateContent([
-                { text: `${prompt}\n\nReturn valid JSON only.` },
+        const prompt = "Analyze this image from a meeting. Extract: 1) all visible text (OCR), 2) a 2-3 sentence summary of what this visual shows, 3) a list of key concepts or topics. Return only valid JSON with keys: ocrText (string), summary (string), concepts (string array). No markdown, no backticks.";
+        const mimeType = "image/jpeg";
+        const executeAnalysis = async () => {
+            const response = await axios_1.default.get(imageUrl, { responseType: "arraybuffer" });
+            const buffer = Buffer.from(response.data);
+            const result = await model.generateContent([
+                { text: prompt },
                 {
                     inlineData: {
                         mimeType,
@@ -72,7 +55,15 @@ exports.geminiService = {
                     }
                 }
             ]);
-            return parseJsonResponse(retryResult.response.text());
+            const text = result.response.text();
+            return parseJsonResponse(text);
+        };
+        try {
+            return await executeAnalysis();
+        }
+        catch (error) {
+            console.warn("[geminiService] analyzeScreenshot failed, retrying once...", error);
+            return await executeAnalysis();
         }
     },
     async transcribeAudio(cloudinaryUrl) {
