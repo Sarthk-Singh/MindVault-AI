@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { meetingsApi } from "../lib/api/meetings";
@@ -12,7 +12,9 @@ import {
   Sparkles,
   CheckCircle2,
   ZoomIn,
-  Bolt
+  Bolt,
+  Play,
+  Volume2
 } from "lucide-react";
 
 type TabType = "transcript" | "summary" | "actions" | "decisions" | "screenshots";
@@ -22,6 +24,7 @@ export const MeetingView: React.FC = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabType>("transcript");
   const [selectedScreenshot, setSelectedScreenshot] = useState<any | null>(null);
+  const [activeRecording, setActiveRecording] = useState<any | null>(null);
   
   // File upload states
   const [isUploading, setIsUploading] = useState(false);
@@ -31,8 +34,20 @@ export const MeetingView: React.FC = () => {
   const { data: meeting, isLoading, isError } = useQuery({
     queryKey: ["meeting", id],
     queryFn: () => meetingsApi.getMeeting(id!),
-    enabled: !!id
+    enabled: !!id,
+    refetchInterval: (query) => {
+      const data = query.state.data as any;
+      return data?.status === "PROCESSING" ? 5000 : false;
+    }
   });
+
+  useEffect(() => {
+    if (meeting?.recordings && meeting.recordings.length > 0) {
+      if (!activeRecording) {
+        setActiveRecording(meeting.recordings[0]);
+      }
+    }
+  }, [meeting, activeRecording]);
 
   // Mutations for AI pipelines
   const transcribeMutation = useMutation({
@@ -105,9 +120,14 @@ export const MeetingView: React.FC = () => {
     }
   };
 
-  const handleAudioVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: "audio" | "video") => {
+  const handleAudioVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
+    
+    // Dynamically determine upload endpoint based on MIME type or file extension
+    const isVideo = file.type.startsWith("video/") || 
+                    /\.(mp4|mov|avi|webm|mkv)$/i.test(file.name);
+    const type = isVideo ? "video" : "audio";
     
     const formData = new FormData();
     formData.append("meetingId", id!);
@@ -117,9 +137,13 @@ export const MeetingView: React.FC = () => {
     setUploadError("");
 
     try {
-      await api.post(`/${type}`, formData, {
+      const response = await api.post(`/${type}`, formData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
+      const newRecording = response.data.recording;
+      if (newRecording) {
+        setActiveRecording(newRecording);
+      }
       queryClient.invalidateQueries({ queryKey: ["meeting", id] });
       alert("Recording uploaded and queued for transcription!");
     } catch (err: any) {
@@ -182,8 +206,8 @@ export const MeetingView: React.FC = () => {
             type="file"
             id="audio-file"
             className="hidden"
-            accept="audio/*"
-            onChange={(e) => handleAudioVideoUpload(e, "audio")}
+            accept="audio/*,video/*"
+            onChange={handleAudioVideoUpload}
           />
 
           <button
@@ -206,8 +230,125 @@ export const MeetingView: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs navigation */}
-      <div className="space-y-6">
+      {/* Status Messages */}
+      {meeting.status === "FAILED" && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1 flex-1">
+            <h4 className="text-sm font-semibold text-white">AI Analysis Failed</h4>
+            <p className="text-xs text-slate-400">
+              There was an issue processing this meeting's recording. You can attempt to re-run the transcription and analysis.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              onClick={() => transcribeMutation.mutate()}
+              disabled={transcribeMutation.isPending}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
+            >
+              {transcribeMutation.isPending ? "Transcribing..." : "Re-run Transcription"}
+            </button>
+            <button
+              onClick={() => summarizeMutation.mutate()}
+              disabled={summarizeMutation.isPending}
+              className="px-4 py-2 bg-gradient-to-r from-[#0ea5e9] to-[#a855f7] text-white rounded-xl text-xs font-semibold hover:opacity-90 transition-all disabled:opacity-50"
+            >
+              {summarizeMutation.isPending ? "Summarizing..." : "Re-run Summary"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {meeting.status === "PROCESSING" && (
+        <div className="bg-sky-500/10 border border-sky-500/20 rounded-2xl p-4 flex flex-row items-center gap-4">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-sky-400 shrink-0"></div>
+          <div className="space-y-1">
+            <h4 className="text-sm font-semibold text-white">Processing Meeting Recording</h4>
+            <p className="text-xs text-slate-400">
+              Gemini is transcribing and analyzing your meeting. This may take a moment. The page will auto-update when completed.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content Layout */}
+      <div className={meeting.recordings && meeting.recordings.length > 0 ? "grid grid-cols-1 lg:grid-cols-3 gap-8" : "space-y-6"}>
+        {/* Left Column: Media Player (only if recordings exist) */}
+        {meeting.recordings && meeting.recordings.length > 0 && (
+          <div className="lg:col-span-1 space-y-6">
+            <div className="glass-panel rounded-3xl p-6 space-y-4">
+              <h2 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+                <Play className="w-5 h-5 text-sky-400" />
+                Meeting Recording
+              </h2>
+              
+              {/* HTML5 video/audio player */}
+              {activeRecording && (
+                <div className="rounded-2xl overflow-hidden bg-slate-950 border border-slate-800">
+                  {activeRecording.mimeType.startsWith("video/") ? (
+                    <video
+                      key={activeRecording.id}
+                      src={activeRecording.fileUrl}
+                      controls
+                      className="w-full aspect-video"
+                    />
+                  ) : (
+                    <div className="p-8 flex flex-col items-center justify-center gap-4 bg-slate-900/50">
+                      <Volume2 className="w-12 h-12 text-sky-400 animate-pulse" />
+                      <audio
+                        key={activeRecording.id}
+                        src={activeRecording.fileUrl}
+                        controls
+                        className="w-full"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Selection info */}
+              {activeRecording && (
+                <div className="text-xs text-slate-400 space-y-1">
+                  <p className="font-semibold text-slate-200">
+                    Active File: <a href={activeRecording.fileUrl} target="_blank" rel="noreferrer" className="text-sky-400 hover:underline">{activeRecording.fileUrl.split("/").pop()}</a>
+                  </p>
+                  <p>Uploaded: {new Date(activeRecording.createdAt).toLocaleString()}</p>
+                </div>
+              )}
+
+              {/* List of other recordings */}
+              {meeting.recordings.length > 1 && (
+                <div className="space-y-2 pt-2 border-t border-slate-800/60">
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
+                    All Recordings ({meeting.recordings.length})
+                  </span>
+                  <div className="space-y-1.5 max-h-[200px] overflow-y-auto custom-scrollbar">
+                    {meeting.recordings.map((rec, index) => (
+                      <button
+                        key={rec.id}
+                        onClick={() => setActiveRecording(rec)}
+                        className={`w-full text-left p-3 rounded-xl text-xs transition-colors flex items-center justify-between ${
+                          activeRecording?.id === rec.id
+                            ? "bg-sky-500/10 text-white border border-sky-500/30"
+                            : "bg-slate-900/40 text-slate-400 hover:bg-slate-800/30 hover:text-slate-200 border border-transparent"
+                        }`}
+                      >
+                        <span className="truncate max-w-[150px]">
+                          Recording {index + 1}
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          {new Date(rec.createdAt).toLocaleDateString()}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Right Column: Tabs */}
+        <div className={meeting.recordings && meeting.recordings.length > 0 ? "lg:col-span-2 space-y-6" : "space-y-6"}>
         <div className="border-b border-slate-800/60 flex gap-8">
           {(["transcript", "summary", "actions", "decisions", "screenshots"] as TabType[]).map((tab) => (
             <button
@@ -455,6 +596,7 @@ export const MeetingView: React.FC = () => {
             )}
           </div>
         )}
+        </div>
       </div>
 
       {/* Screenshot details modal */}

@@ -46,6 +46,8 @@ const processTranscribeJob = async (jobData: { recordingId: string; meetingId: s
   const transcript = await geminiService.transcribeAudio(recording.fileUrl);
   const chunks = chunkTranscript(transcript);
 
+  await prisma.transcriptChunk.deleteMany({ where: { meetingId: recording.meetingId } });
+
   await prisma.transcriptChunk.createMany({
     data: chunks.map((content, chunkIndex) => ({
       meetingId: recording.meetingId,
