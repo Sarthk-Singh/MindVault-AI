@@ -192,7 +192,7 @@ export const Dashboard: React.FC = () => {
             <FolderClosed className="w-16 h-16 text-slate-500" />
           </div>
           <h2 className="text-xl font-semibold text-white mb-2 font-display">No Workspaces Found</h2>
-          <p className="text-slate-400 text-sm mb-6 max-w-md">
+          <p className="text-slate-400 text-sm mb-6 max-w-md w-full">
             You haven't created or joined any workspaces yet. Create your first workspace to start organizing your meetings and AI summaries.
           </p>
           <button
