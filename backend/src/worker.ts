@@ -5,6 +5,7 @@ import { prisma } from "./config/prisma";
 import { env } from "./config/env";
 import { geminiService } from "./services/geminiService";
 import { Prisma } from "@prisma/client";
+import { storeEmbedding } from "./services/embeddingService";
 
 
 const chunkTranscript = (transcript: string, chunkSize = 500) => {
@@ -18,15 +19,6 @@ const chunkTranscript = (transcript: string, chunkSize = 500) => {
 
     return chunks;
   }, []);
-};
-
-const storeEmbedding = async (sourceId: string, sourceType: string, text: string) => {
-  const vector = Array.from({ length: 768 }, () => 0);
-  const vectorLiteral = `[${vector.join(",")}]`;
-
-  await prisma.$executeRaw`INSERT INTO "Embedding" ("id", "sourceId", "sourceType", "vector", "createdAt") VALUES (${randomUUID()}, ${sourceId}, ${sourceType}, ${vectorLiteral}::vector(768), NOW())`;
-
-  console.log(`[worker] stubbed embedding stored for ${sourceType}:${sourceId}`, text.slice(0, 120));
 };
 
 const processTranscribeJob = async (jobData: { recordingId: string; meetingId: string }) => {
@@ -48,13 +40,23 @@ const processTranscribeJob = async (jobData: { recordingId: string; meetingId: s
 
   await prisma.transcriptChunk.deleteMany({ where: { meetingId: recording.meetingId } });
 
-  await prisma.transcriptChunk.createMany({
-    data: chunks.map((content, chunkIndex) => ({
-      meetingId: recording.meetingId,
-      content,
-      chunkIndex
-    }))
-  });
+  const chunkRecords = [];
+  for (let i = 0; i < chunks.length; i++) {
+    const chunkRecord = await prisma.transcriptChunk.create({
+      data: {
+        meetingId: recording.meetingId,
+        content: chunks[i],
+        chunkIndex: i
+      }
+    });
+    chunkRecords.push(chunkRecord);
+  }
+
+  await Promise.all(
+    chunkRecords.map((chunk) =>
+      storeEmbedding(chunk.id, "transcript", chunk.content)
+    )
+  );
 
   const [summaryResult, actionItems, decisions] = await Promise.all([
     geminiService.generateSummary(transcript),
@@ -66,13 +68,15 @@ const processTranscribeJob = async (jobData: { recordingId: string; meetingId: s
   await prisma.actionItem.deleteMany({ where: { meetingId: recording.meetingId } });
   await prisma.decision.deleteMany({ where: { meetingId: recording.meetingId } });
 
-  await prisma.summary.create({
+  const summary = await prisma.summary.create({
     data: {
       meetingId: recording.meetingId,
       summary: summaryResult.summary,
       keyPoints: summaryResult.keyPoints as unknown as Prisma.InputJsonValue
     }
   });
+
+  await storeEmbedding(summary.id, "summary", summary.summary);
 
   if (actionItems.length > 0) {
     await prisma.actionItem.createMany({

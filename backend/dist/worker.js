@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 require("dotenv/config");
-const node_crypto_1 = require("node:crypto");
 const bullmq_1 = require("bullmq");
 const prisma_1 = require("./config/prisma");
 const env_1 = require("./config/env");
 const geminiService_1 = require("./services/geminiService");
+const embeddingService_1 = require("./services/embeddingService");
 const chunkTranscript = (transcript, chunkSize = 500) => {
     const words = transcript.trim().split(/\s+/).filter(Boolean);
     return words.reduce((chunks, word, index) => {
@@ -14,12 +14,6 @@ const chunkTranscript = (transcript, chunkSize = 500) => {
         chunks[chunkIndex] = `${currentChunk} ${word}`.trim();
         return chunks;
     }, []);
-};
-const storeEmbedding = async (sourceId, sourceType, text) => {
-    const vector = Array.from({ length: 768 }, () => 0);
-    const vectorLiteral = `[${vector.join(",")}]`;
-    await prisma_1.prisma.$executeRaw `INSERT INTO "Embedding" ("id", "sourceId", "sourceType", "vector", "createdAt") VALUES (${(0, node_crypto_1.randomUUID)()}, ${sourceId}, ${sourceType}, ${vectorLiteral}::vector(768), NOW())`;
-    console.log(`[worker] stubbed embedding stored for ${sourceType}:${sourceId}`, text.slice(0, 120));
 };
 const processTranscribeJob = async (jobData) => {
     const recording = await prisma_1.prisma.recording.findUnique({
@@ -34,13 +28,19 @@ const processTranscribeJob = async (jobData) => {
     });
     const transcript = await geminiService_1.geminiService.transcribeAudio(recording.fileUrl);
     const chunks = chunkTranscript(transcript);
-    await prisma_1.prisma.transcriptChunk.createMany({
-        data: chunks.map((content, chunkIndex) => ({
-            meetingId: recording.meetingId,
-            content,
-            chunkIndex
-        }))
-    });
+    await prisma_1.prisma.transcriptChunk.deleteMany({ where: { meetingId: recording.meetingId } });
+    const chunkRecords = [];
+    for (let i = 0; i < chunks.length; i++) {
+        const chunkRecord = await prisma_1.prisma.transcriptChunk.create({
+            data: {
+                meetingId: recording.meetingId,
+                content: chunks[i],
+                chunkIndex: i
+            }
+        });
+        chunkRecords.push(chunkRecord);
+    }
+    await Promise.all(chunkRecords.map((chunk) => (0, embeddingService_1.storeEmbedding)(chunk.id, "transcript", chunk.content)));
     const [summaryResult, actionItems, decisions] = await Promise.all([
         geminiService_1.geminiService.generateSummary(transcript),
         geminiService_1.geminiService.extractActionItems(transcript),
@@ -49,13 +49,14 @@ const processTranscribeJob = async (jobData) => {
     await prisma_1.prisma.summary.deleteMany({ where: { meetingId: recording.meetingId } });
     await prisma_1.prisma.actionItem.deleteMany({ where: { meetingId: recording.meetingId } });
     await prisma_1.prisma.decision.deleteMany({ where: { meetingId: recording.meetingId } });
-    await prisma_1.prisma.summary.create({
+    const summary = await prisma_1.prisma.summary.create({
         data: {
             meetingId: recording.meetingId,
             summary: summaryResult.summary,
             keyPoints: summaryResult.keyPoints
         }
     });
+    await (0, embeddingService_1.storeEmbedding)(summary.id, "summary", summary.summary);
     if (actionItems.length > 0) {
         await prisma_1.prisma.actionItem.createMany({
             data: actionItems.map((item) => ({
@@ -100,7 +101,7 @@ const worker = new bullmq_1.Worker("ai-jobs", async (job) => {
                 }
             });
             const combinedText = `${analysis.ocrText} ${analysis.summary}`.trim();
-            await storeEmbedding(screenshotId, "screenshot", combinedText);
+            await (0, embeddingService_1.storeEmbedding)(screenshotId, "screenshot", combinedText);
             await prisma_1.prisma.meeting.update({
                 where: { id: screenshot.meetingId },
                 data: { status: "DONE" }

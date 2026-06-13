@@ -6,6 +6,7 @@ import { workspaceRouter } from "./modules/workspace/workspaceRouter";
 import { meetingRouter } from "./modules/meeting/meetingRouter";
 import { aiRouter } from "./modules/ai/aiRouter";
 import { uploadRouter } from "./modules/upload/uploadRouter";
+import { searchRouter } from "./modules/search/searchRouter";
 import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
@@ -21,6 +22,7 @@ app.use("/api/workspaces", workspaceRouter);
 app.use("/api/meetings", meetingRouter);
 app.use("/api", aiRouter);
 app.use("/api", uploadRouter);
+app.use("/api/search", searchRouter);
 app.use(errorHandler);
 
 const server = app.listen(env.PORT, "127.0.0.1", () => {

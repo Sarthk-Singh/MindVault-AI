@@ -8,7 +8,7 @@ const generative_ai_1 = require("@google/generative-ai");
 const axios_1 = __importDefault(require("axios"));
 const env_1 = require("../config/env");
 const genAI = new generative_ai_1.GoogleGenerativeAI(env_1.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 const cleanJsonResponse = (text) => {
     return text
         .replace(/^```json\s*/i, "")
