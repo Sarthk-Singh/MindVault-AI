@@ -23,10 +23,18 @@ export const Layout: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    const savedUser = sessionStorage.getItem("userName");
-    if (savedUser) {
-      setUserName(savedUser);
-    }
+    const updateUserName = () => {
+      const savedUser = sessionStorage.getItem("userName");
+      if (savedUser) {
+        setUserName(savedUser);
+      }
+    };
+    updateUserName();
+
+    window.addEventListener("storage", updateUserName);
+    return () => {
+      window.removeEventListener("storage", updateUserName);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -80,15 +88,15 @@ export const Layout: React.FC = () => {
             <LayoutDashboard className="w-5 h-5" />
             <span>Dashboard</span>
           </Link>
-          <Link to="/" className={linkClass("/vault")}>
+          <Link to="/memory-vault" className={linkClass("/memory-vault")}>
             <Database className="w-5 h-5" />
             <span>Memory Vault</span>
           </Link>
-          <Link to="/" className={linkClass("/meetings")}>
+          <Link to="/meetings" className={linkClass("/meetings")}>
             <Video className="w-5 h-5" />
             <span>Meetings</span>
           </Link>
-          <Link to="/" className={linkClass("/workspaces")}>
+          <Link to="/team-library" className={linkClass("/team-library")}>
             <Users2 className="w-5 h-5" />
             <span>Team Library</span>
           </Link>
@@ -97,14 +105,14 @@ export const Layout: React.FC = () => {
             System
           </div>
           
-          <a href="#" className="nav-item flex items-center gap-4 px-4 py-3 text-sm font-medium text-slate-400 hover:text-white">
+          <Link to="/integrations" className={linkClass("/integrations")}>
             <Puzzle className="w-5 h-5" />
             <span>Integrations</span>
-          </a>
-          <a href="#" className="nav-item flex items-center gap-4 px-4 py-3 text-sm font-medium text-slate-400 hover:text-white">
+          </Link>
+          <Link to="/settings" className={linkClass("/settings")}>
             <Settings className="w-5 h-5" />
             <span>Settings</span>
-          </a>
+          </Link>
         </nav>
 
         {/* Storage status & help / logout actions */}
@@ -118,13 +126,15 @@ export const Layout: React.FC = () => {
           </div>
 
           <div className="flex flex-col gap-1">
-            <a
-              href="#"
-              className="flex items-center gap-4 px-4 py-2 text-slate-400 hover:text-white text-xs font-medium transition-all"
+            <Link
+              to="/help-center"
+              className={`flex items-center gap-4 px-4 py-2 text-slate-400 hover:text-white text-xs font-medium transition-all rounded-xl ${
+                isActive("/help-center") ? "text-white bg-white/5" : ""
+              }`}
             >
               <HelpCircle className="w-4 h-4" />
               <span>Help Center</span>
-            </a>
+            </Link>
             <button
               onClick={handleLogout}
               className="flex items-center gap-4 px-4 py-2 text-left text-error hover:bg-red-500/10 transition-all rounded-xl text-xs font-medium"

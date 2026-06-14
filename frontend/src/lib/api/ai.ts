@@ -27,5 +27,10 @@ export const aiApi = {
   async screenshotAnalysis(screenshotId: string): Promise<JobQueuedResponse> {
     const response = await api.post<JobQueuedResponse>("/screenshot-analysis", { screenshotId });
     return response.data;
+  },
+
+  async search(query: string, workspaceId: string): Promise<{ results: any[] }> {
+    const response = await api.post<{ results: any[] }>("/search", { query, workspaceId });
+    return response.data;
   }
 };
