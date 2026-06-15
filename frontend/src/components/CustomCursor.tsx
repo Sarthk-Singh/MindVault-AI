@@ -29,13 +29,13 @@ export const CustomCursor: React.FC = () => {
 
     const onMouseEnterTarget = () => {
       if (blurRef.current) {
-        gsap.to(blurRef.current, { width: 150, height: 150, duration: 0.3 });
+        gsap.to(blurRef.current, { width: 75, height: 75, duration: 0.3 });
       }
     };
 
     const onMouseLeaveTarget = () => {
       if (blurRef.current) {
-        gsap.to(blurRef.current, { width: 400, height: 400, duration: 0.3 });
+        gsap.to(blurRef.current, { width: 200, height: 200, duration: 0.3 });
       }
     };
 
@@ -79,8 +79,8 @@ export const CustomCursor: React.FC = () => {
           position: "fixed",
           left: 0,
           top: 0,
-          width: 400,
-          height: 400,
+          width: 200,
+          height: 200,
           background: "radial-gradient(circle, rgba(14, 165, 233, 0.12) 0%, transparent 70%)",
           pointerEvents: "none",
           transform: "translate(-50%, -50%)",
