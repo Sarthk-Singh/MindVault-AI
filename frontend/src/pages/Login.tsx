@@ -23,6 +23,7 @@ export const Login: React.FC = () => {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors }
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema)
@@ -34,6 +35,9 @@ export const Login: React.FC = () => {
       const name = data.user?.name || "Alex Rivera";
       sessionStorage.setItem("userName", name);
       navigate("/");
+    },
+    onError: () => {
+      setValue("password", "");
     }
   });
 

@@ -16,15 +16,15 @@ export const uploadRouter = Router();
 uploadRouter.use(verifyToken);
 
 // Enforce size limits per route using in-route middleware
-uploadRouter.post("/audio", (req, res, next) => {
+uploadRouter.post(["/audio", "/uploads/audio"], (req, res, next) => {
   // set limits dynamically not directly supported; rely on multer and client to respect sizes
   audioUpload(req, res, (err) => (err ? next(err) : next()));
 }, uploadController.uploadAudio);
 
-uploadRouter.post("/video", (req, res, next) => {
+uploadRouter.post(["/video", "/uploads/video"], (req, res, next) => {
   videoUpload(req, res, (err) => (err ? next(err) : next()));
 }, uploadController.uploadVideo);
 
-uploadRouter.post("/screenshot", (req, res, next) => {
+uploadRouter.post(["/screenshot", "/uploads/screenshot"], (req, res, next) => {
   screenshotUpload(req, res, (err) => (err ? next(err) : next()));
 }, uploadController.uploadScreenshot);
