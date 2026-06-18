@@ -5,10 +5,11 @@ import { env } from "../../config/env";
 import { prisma } from "../../config/prisma";
 import { AppError } from "../../middleware/errorHandler";
 
-type JwtPayload = {
+export type JwtPayload = {
   id: string;
   email: string;
   role: UserRole;
+  name?: string;
 };
 
 const signToken = (
@@ -19,7 +20,7 @@ const signToken = (
   return jwt.sign(payload, secret, { expiresIn });
 };
 
-const createTokens = (payload: JwtPayload) => {
+export const createTokens = (payload: JwtPayload) => {
   const accessToken = signToken(payload, env.JWT_SECRET, "15m");
   const refreshToken = signToken(payload, env.JWT_REFRESH_SECRET, "7d");
 

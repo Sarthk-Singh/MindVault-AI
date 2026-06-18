@@ -213,24 +213,18 @@ export const Register: React.FC = () => {
                 <span className="flex-shrink mx-4 text-xs text-white/30 uppercase tracking-widest">or</span>
                 <div className="flex-grow border-t border-white/10"></div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <button 
-                  type="button"
-                  onClick={() => navigate("/")}
-                  className="flex items-center justify-center gap-2 py-2 border border-white/10 rounded-xl hover:bg-white/5 transition-all text-white/80 text-sm cursor-pointer"
-                >
-                  <img alt="Google" className="w-4 h-4" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBS-_58s_7rMMZtAmcSoD-pQSx7RBC4txWHtwDiHR82Hre9iYVeXSUNXOeiryFDNfQSCW6JlY4Eu0_3M2Dj9dEFvLEa4M4_DfHMkgdc2hfVzejjmE_gZ8e3SCerZ4nKkjd0PJ-PbegZJamHkE9uGfL_tHIUpZa1lOTB76A2q9om4CFsHZnifxMGf4ZGTJYrU7g9C-ACGIjvPxwqrXCD2rmCr8g8gMaBph1ODNwHaiwMyz-Azq93_OWFn7hF-5GvvTI43kGvQiJUcDM"/>
-                  <span>Google</span>
-                </button>
-                <button 
-                  type="button"
-                  onClick={() => navigate("/")}
-                  className="flex items-center justify-center gap-2 py-2 border border-white/10 rounded-xl hover:bg-white/5 transition-all text-white/80 text-sm cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-lg">work</span>
-                  <span>SSO</span>
-                </button>
-              </div>
+              <button 
+                type="button"
+                onClick={() => {
+                  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+                  const baseUrl = apiUrl.endsWith("/api") ? apiUrl.slice(0, -4) : apiUrl;
+                  window.location.href = `${baseUrl}/api/auth/google`;
+                }}
+                className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white hover:bg-slate-100 text-slate-900 rounded-xl text-sm font-semibold shadow-md transition-all active:scale-[0.98] cursor-pointer"
+              >
+                <img alt="Google" className="w-5 h-5" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBS-_58s_7rMMZtAmcSoD-pQSx7RBC4txWHtwDiHR82Hre9iYVeXSUNXOeiryFDNfQSCW6JlY4Eu0_3M2Dj9dEFvLEa4M4_DfHMkgdc2hfVzejjmE_gZ8e3SCerZ4nKkjd0PJ-PbegZJamHkE9uGfL_tHIUpZa1lOTB76A2q9om4CFsHZnifxMGf4ZGTJYrU7g9C-ACGIjvPxwqrXCD2rmCr8g8gMaBph1ODNwHaiwMyz-Azq93_OWFn7hF-5GvvTI43kGvQiJUcDM"/>
+                <span>Continue with Google</span>
+              </button>
             </div>
 
           </div>

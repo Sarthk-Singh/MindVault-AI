@@ -11,7 +11,8 @@ import {
   LogOut,
   Bell,
   Search,
-  BrainCircuit
+  BrainCircuit,
+  X
 } from "lucide-react";
 import { NeuralCanvas } from "./NeuralCanvas";
 import { CustomCursor } from "./CustomCursor";
@@ -21,6 +22,8 @@ export const Layout: React.FC = () => {
   const navigate = useNavigate();
   const [userName, setUserName] = useState("Alex Rivera");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
     const updateUserName = () => {
@@ -36,6 +39,24 @@ export const Layout: React.FC = () => {
       window.removeEventListener("storage", updateUserName);
     };
   }, []);
+
+  // Close dropdown menu when clicking outside
+  useEffect(() => {
+    if (!showProfileMenu) return;
+
+    const handleCloseMenu = () => {
+      setShowProfileMenu(false);
+    };
+
+    const timer = setTimeout(() => {
+      window.addEventListener("click", handleCloseMenu);
+    }, 10);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("click", handleCloseMenu);
+    };
+  }, [showProfileMenu]);
 
   const handleLogout = () => {
     sessionStorage.removeItem("accessToken");
@@ -179,18 +200,54 @@ export const Layout: React.FC = () => {
             </div>
 
             {/* Profile trigger */}
-            <div className="flex items-center gap-3 px-3 py-1.5 rounded-full hover:bg-white/5 transition-colors cursor-pointer border border-slate-800">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-medium text-white">{userName}</p>
-                <p className="text-[10px] text-slate-500">Lead Architect</p>
+            <div className="relative">
+              <div
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="flex items-center gap-3 px-3 py-1.5 rounded-full hover:bg-white/5 transition-colors cursor-pointer border border-slate-800"
+              >
+                <div className="text-right hidden sm:block">
+                  <p className="text-sm font-medium text-white">{userName}</p>
+                  <p className="text-[10px] text-slate-500 font-medium">Lead Architect</p>
+                </div>
+                <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden">
+                  <img
+                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userName)}`}
+                    alt="avatar"
+                    className="w-full h-full"
+                  />
+                </div>
               </div>
-              <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden">
-                <img
-                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userName)}`}
-                  alt="avatar"
-                  className="w-full h-full"
-                />
-              </div>
+
+              {/* Profile Dropdown Menu */}
+              {showProfileMenu && (
+                <div className="absolute right-0 top-full mt-2 w-48 bg-slate-900/90 border border-slate-800 rounded-xl py-2 shadow-2xl z-50 backdrop-blur-md animate-reveal">
+                  <button
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      setShowProfileModal(true);
+                    }}
+                    className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                  >
+                    Profile
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      navigate("/settings");
+                    }}
+                    className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                  >
+                    Settings
+                  </button>
+                  <div className="border-t border-slate-800 my-1"></div>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2 text-xs font-semibold text-error hover:bg-red-500/10 transition-colors cursor-pointer"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -200,6 +257,59 @@ export const Layout: React.FC = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* User Profile Modal */}
+      {showProfileModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setShowProfileModal(false)} />
+          
+          <div className="relative bg-slate-900/90 border border-slate-800 rounded-[24px] w-full max-w-sm p-6 z-10 shadow-2xl animate-reveal text-slate-200">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h3 className="text-base font-bold text-white font-display">User Profile</h3>
+                <p className="text-[10px] text-slate-400">Your account information and details</p>
+              </div>
+              <button
+                onClick={() => setShowProfileModal(false)}
+                className="p-1 hover:bg-slate-800 transition-colors rounded-lg cursor-pointer text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider block mb-0.5">Registered Name</label>
+                <p className="text-xs font-semibold text-white">Sarthak Singh</p>
+              </div>
+
+              <div>
+                <label className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider block mb-0.5">Role / Designation</label>
+                <p className="text-xs font-semibold text-white">STUDENT</p>
+              </div>
+
+              <div>
+                <label className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider block mb-0.5">Email</label>
+                <p className="text-xs font-semibold text-white">sarthaksinghddn@gmail.com</p>
+              </div>
+
+              <div>
+                <label className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider block mb-0.5">User ID</label>
+                <p className="text-xs font-semibold text-white font-mono">286</p>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-slate-800 flex justify-end">
+              <button
+                onClick={() => setShowProfileModal(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-semibold transition-all cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

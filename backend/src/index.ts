@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import passport from "passport";
 import { env } from "./config/env";
 import { authRouter } from "./modules/auth/authRouter";
 import { workspaceRouter } from "./modules/workspace/workspaceRouter";
@@ -8,8 +9,10 @@ import { aiRouter } from "./modules/ai/aiRouter";
 import { uploadRouter } from "./modules/upload/uploadRouter";
 import { searchRouter } from "./modules/search/searchRouter";
 import { errorHandler } from "./middleware/errorHandler";
+import "./config/passport";
 
 const app = express();
+app.use(passport.initialize());
 
 app.use(cors({
   origin: [env.FRONTEND_URL, "http://localhost:5173", "http://localhost:5174"],

@@ -36,9 +36,23 @@ const validateBody =
     next();
   };
 
+import passport from "passport";
+import { env } from "../../config/env";
+
 export const authRouter = Router();
 
 authRouter.post("/register", validateBody(registerSchema), authController.register);
 authRouter.post("/login", validateBody(loginSchema), authController.login);
 authRouter.post("/refresh", validateBody(refreshSchema), authController.refresh);
 authRouter.post("/logout", verifyToken, authController.logout);
+
+authRouter.get("/google", passport.authenticate("google", { scope: ["profile", "email"], session: false }));
+
+authRouter.get(
+  "/google/callback",
+  passport.authenticate("google", { failureRedirect: "/login", session: false }),
+  (req, res) => {
+    const user = req.user as any;
+    res.redirect(`${env.FRONTEND_URL}/auth/callback?token=${user.accessToken}&refresh=${user.refreshToken}`);
+  }
+);

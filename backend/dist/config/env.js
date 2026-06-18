@@ -18,6 +18,9 @@ const envSchema = zod_1.z.object({
     CLOUDINARY_API_KEY: zod_1.z.string().min(1),
     CLOUDINARY_API_SECRET: zod_1.z.string().min(1),
     REDIS_URL: zod_1.z.string().min(1),
-    FRONTEND_URL: zod_1.z.string().url()
+    FRONTEND_URL: zod_1.z.string().url(),
+    GOOGLE_CLIENT_ID: zod_1.z.string().optional().default(""),
+    GOOGLE_CLIENT_SECRET: zod_1.z.string().optional().default(""),
+    GOOGLE_CALLBACK_URL: zod_1.z.string().optional().default("http://localhost:3001/api/auth/google/callback")
 });
 exports.env = envSchema.parse(process.env);

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.authService = void 0;
+exports.authService = exports.createTokens = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const env_1 = require("../../config/env");
@@ -17,6 +17,7 @@ const createTokens = (payload) => {
     const refreshToken = signToken(payload, env_1.env.JWT_REFRESH_SECRET, "7d");
     return { accessToken, refreshToken };
 };
+exports.createTokens = createTokens;
 const DB_TIMEOUT_MS = 10_000;
 const runDbOperation = (operation, operationName) => {
     return new Promise((resolve, reject) => {
@@ -78,7 +79,7 @@ exports.authService = {
             if (!passwordMatches) {
                 throw new errorHandler_1.AppError("Invalid email or password", 401);
             }
-            const tokens = createTokens({
+            const tokens = (0, exports.createTokens)({
                 id: user.id,
                 email: user.email,
                 role: user.role
@@ -105,7 +106,7 @@ exports.authService = {
     async refresh(refreshToken) {
         try {
             const decoded = jsonwebtoken_1.default.verify(refreshToken, env_1.env.JWT_REFRESH_SECRET);
-            return createTokens({
+            return (0, exports.createTokens)({
                 id: decoded.id,
                 email: decoded.email,
                 role: decoded.role

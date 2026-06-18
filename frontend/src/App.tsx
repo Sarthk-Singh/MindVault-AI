@@ -3,6 +3,7 @@ import { PrivateRoute } from "./components/PrivateRoute";
 import { Layout } from "./components/Layout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import AuthCallback from "./pages/AuthCallback";
 import Dashboard from "./pages/Dashboard";
 import WorkspaceView from "./pages/WorkspaceView";
 import MeetingView from "./pages/MeetingView";
@@ -20,6 +21,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
 
         {/* Protected Routes */}
         <Route element={<PrivateRoute />}>

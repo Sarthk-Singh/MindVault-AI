@@ -1,4 +1,7 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.authRouter = void 0;
 const express_1 = require("express");
@@ -29,8 +32,15 @@ const validateBody = (schema) => (req, _res, next) => {
     req.body = result.data;
     next();
 };
+const passport_1 = __importDefault(require("passport"));
+const env_1 = require("../../config/env");
 exports.authRouter = (0, express_1.Router)();
 exports.authRouter.post("/register", validateBody(registerSchema), authController_1.authController.register);
 exports.authRouter.post("/login", validateBody(loginSchema), authController_1.authController.login);
 exports.authRouter.post("/refresh", validateBody(refreshSchema), authController_1.authController.refresh);
 exports.authRouter.post("/logout", authMiddleware_1.verifyToken, authController_1.authController.logout);
+exports.authRouter.get("/google", passport_1.default.authenticate("google", { scope: ["profile", "email"], session: false }));
+exports.authRouter.get("/google/callback", passport_1.default.authenticate("google", { failureRedirect: "/login", session: false }), (req, res) => {
+    const user = req.user;
+    res.redirect(`${env_1.env.FRONTEND_URL}/auth/callback?token=${user.accessToken}&refresh=${user.refreshToken}`);
+});
