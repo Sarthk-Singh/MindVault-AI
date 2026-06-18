@@ -41,5 +41,26 @@ exports.authController = {
         catch (error) {
             next(error);
         }
+    },
+    async deletePreview(req, res, next) {
+        try {
+            const userId = req.user?.id;
+            const preview = await authService_1.authService.getDeletePreview(userId);
+            res.status(200).json(preview);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+    async deleteAccount(req, res, next) {
+        try {
+            const userId = req.user?.id;
+            const { password, deleteStuff } = req.body;
+            const result = await authService_1.authService.deleteAccount(userId, password, deleteStuff);
+            res.status(200).json(result);
+        }
+        catch (error) {
+            next(error);
+        }
     }
 };

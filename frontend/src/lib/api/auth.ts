@@ -43,5 +43,15 @@ export const authApi = {
   async logout(): Promise<{ success: boolean }> {
     const response = await api.post<{ success: boolean }>("/auth/logout");
     return response.data;
+  },
+
+  async getDeletePreview(): Promise<{ workspaces: any[]; meetings: any[] }> {
+    const response = await api.get<{ workspaces: any[]; meetings: any[] }>("/auth/delete-preview");
+    return response.data;
+  },
+
+  async deleteAccount(data: { password: string; deleteStuff: boolean }): Promise<{ success: boolean }> {
+    const response = await api.post<{ success: boolean }>("/auth/delete-account", data);
+    return response.data;
   }
 };

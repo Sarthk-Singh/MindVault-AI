@@ -1,5 +1,6 @@
 generator client {
   provider        = "prisma-client-js"
+  output          = "../node_modules/@prisma/client"
   previewFeatures = ["postgresqlExtensions"]
 }
 
@@ -31,15 +32,18 @@ enum ActionItemStatus {
 
 model User {
   id               String            @id @default(cuid())
+  userId           String            @unique
   name             String
   email            String            @unique
   password         String
   role             UserRole
+  isGoogleUser     Boolean           @default(false)
   createdAt        DateTime          @default(now())
   ownedWorkspaces  Workspace[]       @relation("WorkspaceOwner")
   workspaceMembers WorkspaceMember[]
   createdMeetings  Meeting[]         @relation("MeetingCreator")
   auditLogs        AuditLog[]
+  workspaceInvites WorkspaceInvite[]
 }
 
 model Workspace {
@@ -50,6 +54,7 @@ model Workspace {
   members   WorkspaceMember[]
   meetings  Meeting[]
   createdAt DateTime          @default(now())
+  invites   WorkspaceInvite[]
 }
 
 model WorkspaceMember {
@@ -62,6 +67,18 @@ model WorkspaceMember {
   joinedAt    DateTime   @default(now())
 
   @@unique([workspaceId, userId])
+}
+
+model WorkspaceInvite {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  token       String    @unique
+  expiresAt   DateTime
+  usedBy      String[]
+  createdById String
+  createdBy   User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
 }
 
 model Meeting {

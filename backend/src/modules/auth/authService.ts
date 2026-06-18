@@ -60,6 +60,7 @@ export const authService = {
       }
 
       const hashedPassword = await bcrypt.hash(password, 12);
+      const userId = 'MV-' + Math.floor(1000 + Math.random() * 9000).toString();
 
       const user = await runDbOperation(
         prisma.user.create({
@@ -67,10 +68,12 @@ export const authService = {
             name,
             email,
             password: hashedPassword,
-            role
+            role,
+            userId
           },
           select: {
             id: true,
+            userId: true,
             name: true,
             email: true,
             role: true,
@@ -164,6 +167,176 @@ export const authService = {
       return { success: true };
     } catch {
       throw new AppError("Failed to logout");
+    }
+  },
+
+  async getDeletePreview(userId: string) {
+    try {
+      const workspaces = await runDbOperation(
+        prisma.workspace.findMany({
+          where: { ownerId: userId },
+          include: {
+            _count: {
+              select: { meetings: true, members: true }
+            }
+          }
+        }),
+        "fetching owned workspaces"
+      );
+
+      const meetings = await runDbOperation(
+        prisma.meeting.findMany({
+          where: {
+            createdById: userId,
+            workspace: {
+              ownerId: { not: userId }
+            }
+          },
+          include: {
+            workspace: {
+              select: { name: true }
+            }
+          }
+        }),
+        "fetching created meetings"
+      );
+
+      return {
+        workspaces: workspaces.map((w) => ({
+          id: w.id,
+          name: w.name,
+          meetingsCount: w._count.meetings,
+          membersCount: w._count.members
+        })),
+        meetings: meetings.map((m) => ({
+          id: m.id,
+          title: m.title,
+          workspaceName: m.workspace.name
+        }))
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError("Failed to fetch account deletion preview", 500);
+    }
+  },
+
+  async deleteAccount(userId: string, password: string, deleteStuff: boolean) {
+    try {
+      const user = await runDbOperation(
+        prisma.user.findUnique({ where: { id: userId } }),
+        "looking up the user account for deletion"
+      );
+
+      if (!user) {
+        throw new AppError("User not found", 404);
+      }
+
+      const passwordMatches = await bcrypt.compare(password, user.password);
+      if (!passwordMatches) {
+        throw new AppError("Incorrect password", 400);
+      }
+
+      if (deleteStuff) {
+        // Complete cascade deletion
+        await runDbOperation(
+          prisma.user.delete({ where: { id: userId } }),
+          "deleting user account and cascading content"
+        );
+      } else {
+        // Transfer ownership of owned workspaces
+        const ownedWorkspaces = await runDbOperation(
+          prisma.workspace.findMany({
+            where: { ownerId: userId },
+            include: {
+              members: {
+                where: { userId: { not: userId } }
+              }
+            }
+          }),
+          "fetching owned workspaces for transfer"
+        );
+
+        for (const workspace of ownedWorkspaces) {
+          if (workspace.members.length > 0) {
+            // Find a successor (prefer ADMIN, then WORKSPACE_MANAGER, then others)
+            const rolePriority = { ADMIN: 1, WORKSPACE_MANAGER: 2, MEETING_OWNER: 3, TEAM_MEMBER: 4 };
+            const sortedMembers = [...workspace.members].sort((a, b) => {
+              const priorityA = rolePriority[a.role] || 99;
+              const priorityB = rolePriority[b.role] || 99;
+              return priorityA - priorityB;
+            });
+
+            const successor = sortedMembers[0];
+
+            // Update workspace owner
+            await runDbOperation(
+              prisma.workspace.update({
+                where: { id: workspace.id },
+                data: { ownerId: successor.userId }
+              }),
+              `transferring workspace ${workspace.name} ownership`
+            );
+
+            // Promote successor to ADMIN role inside workspace members
+            await runDbOperation(
+              prisma.workspaceMember.update({
+                where: {
+                  workspaceId_userId: {
+                    workspaceId: workspace.id,
+                    userId: successor.userId
+                  }
+                },
+                data: { role: "ADMIN" }
+              }),
+              `promoting workspace member ${successor.userId} to ADMIN`
+            );
+          } else {
+            // No other members, delete the workspace
+            await runDbOperation(
+              prisma.workspace.delete({ where: { id: workspace.id } }),
+              `deleting workspace ${workspace.name} as it has no other members`
+            );
+          }
+        }
+
+        // Reassign meetings created by the user in remaining workspaces
+        const createdMeetings = await runDbOperation(
+          prisma.meeting.findMany({
+            where: { createdById: userId }
+          }),
+          "fetching created meetings for reassignment"
+        );
+
+        for (const meeting of createdMeetings) {
+          const workspace = await runDbOperation(
+            prisma.workspace.findUnique({
+              where: { id: meeting.workspaceId }
+            }),
+            "looking up meeting workspace"
+          );
+
+          if (workspace) {
+            await runDbOperation(
+              prisma.meeting.update({
+                where: { id: meeting.id },
+                data: { createdById: workspace.ownerId }
+              }),
+              `reassigning meeting ${meeting.title} creator`
+            );
+          }
+        }
+
+        // Finally delete the user
+        await runDbOperation(
+          prisma.user.delete({ where: { id: userId } }),
+          "deleting user account"
+        );
+      }
+
+      return { success: true };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError("Failed to delete user account", 500);
     }
   }
 };

@@ -43,5 +43,26 @@ export const authController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  async deletePreview(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = (req as any).user?.id;
+      const preview = await authService.getDeletePreview(userId);
+      res.status(200).json(preview);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async deleteAccount(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = (req as any).user?.id;
+      const { password, deleteStuff } = req.body;
+      const result = await authService.deleteAccount(userId, password, deleteStuff);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
   }
 };

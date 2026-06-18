@@ -28,9 +28,11 @@ if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
             // Generate a secure random password
             const randomPassword = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
             const hashedPassword = await bcrypt.hash(randomPassword, 12);
+            const userId = "MV-" + Math.floor(1000 + Math.random() * 9000).toString();
 
             user = await prisma.user.create({
               data: {
+                userId,
                 name: profile.displayName || "Google User",
                 email,
                 password: hashedPassword,
