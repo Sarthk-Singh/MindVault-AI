@@ -64,5 +64,16 @@ export const authController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  async updatePassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = (req as any).user?.id;
+      const { currentPassword, newPassword } = req.body;
+      const result = await authService.updatePassword(userId, currentPassword, newPassword);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
   }
 };

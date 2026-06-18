@@ -12,10 +12,12 @@ import {
   Bell,
   Search,
   BrainCircuit,
-  X
+  X,
+  Lock
 } from "lucide-react";
 import { NeuralCanvas } from "./NeuralCanvas";
 import { CustomCursor } from "./CustomCursor";
+import { authApi } from "../lib/api/auth";
 
 export const Layout: React.FC = () => {
   const location = useLocation();
@@ -24,6 +26,65 @@ export const Layout: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+
+  // Force Google OAuth users to set a password on first login
+  const [isGoogleUserForceSetup, setIsGoogleUserForceSetup] = useState(false);
+  const [forceNewPassword, setForceNewPassword] = useState("");
+  const [forceConfirmPassword, setForceConfirmPassword] = useState("");
+  const [isForceSubmitting, setIsForceSubmitting] = useState(false);
+  const [forceError, setForceError] = useState("");
+
+  useEffect(() => {
+    const token = sessionStorage.getItem("accessToken");
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        if (payload && payload.isGoogleUser) {
+          setIsGoogleUserForceSetup(true);
+        } else {
+          setIsGoogleUserForceSetup(false);
+        }
+      } catch (e) {
+        console.warn("Could not parse token in Layout", e);
+      }
+    }
+  }, []);
+
+  const handleForcePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForceError("");
+
+    if (!forceNewPassword || !forceConfirmPassword) {
+      setForceError("Please fill in all fields.");
+      return;
+    }
+
+    if (forceNewPassword.length < 8) {
+      setForceError("Password must be at least 8 characters long.");
+      return;
+    }
+
+    if (forceNewPassword !== forceConfirmPassword) {
+      setForceError("Passwords do not match.");
+      return;
+    }
+
+    setIsForceSubmitting(true);
+    try {
+      await authApi.updatePassword({
+        newPassword: forceNewPassword
+      });
+
+      setIsGoogleUserForceSetup(false);
+      setForceNewPassword("");
+      setForceConfirmPassword("");
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.message || "Failed to set password. Please try again.";
+      setForceError(errMsg);
+    } finally {
+      setIsForceSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const updateUserName = () => {
@@ -307,6 +368,85 @@ export const Layout: React.FC = () => {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Force Google User Password Setup */}
+      {isGoogleUserForceSetup && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+          <div className="relative bg-slate-900 border border-slate-800 rounded-[28px] w-full max-w-md p-8 shadow-2xl text-slate-200">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center text-sky-400">
+                <Lock className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white font-display">Create Account Password</h3>
+                <p className="text-xs text-slate-400">Set a password for your account</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-400 mb-6 leading-relaxed">
+              Since you signed in via Google, you need to create a password for your account. This password will allow you to sign in directly using your email and password in the future.
+            </p>
+
+            <form onSubmit={handleForcePasswordSubmit} className="space-y-4">
+              {/* New Password */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest font-display">New Password</label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <input
+                    type="password"
+                    required
+                    value={forceNewPassword}
+                    onChange={(e) => setForceNewPassword(e.target.value)}
+                    className="w-full bg-slate-950/40 border border-slate-800 focus:border-sky-500/50 rounded-xl py-3 pl-11 pr-4 text-slate-200 outline-none text-sm input-glow transition-all"
+                    placeholder="Min. 8 characters"
+                  />
+                </div>
+              </div>
+
+              {/* Confirm Password */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest font-display">Confirm Password</label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <input
+                    type="password"
+                    required
+                    value={forceConfirmPassword}
+                    onChange={(e) => setForceConfirmPassword(e.target.value)}
+                    className="w-full bg-slate-950/40 border border-slate-800 focus:border-sky-500/50 rounded-xl py-3 pl-11 pr-4 text-slate-200 outline-none text-sm input-glow transition-all"
+                    placeholder="Re-enter password"
+                  />
+                </div>
+              </div>
+
+              {forceError && (
+                <p className="text-xs text-red-400 font-medium">{forceError}</p>
+              )}
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isForceSubmitting}
+                  className="w-full bg-gradient-to-r from-sky-500 to-purple-500 hover:scale-[1.01] active:scale-[0.99] text-white py-3 rounded-xl font-semibold text-xs shadow-lg shadow-blue-500/20 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isForceSubmitting ? "Setting Password..." : "Set Password & Continue"}
+                </button>
+              </div>
+
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="text-xs text-slate-500 hover:text-slate-300 underline cursor-pointer"
+                >
+                  Log Out / Switch Account
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

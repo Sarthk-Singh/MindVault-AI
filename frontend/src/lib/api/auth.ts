@@ -53,5 +53,10 @@ export const authApi = {
   async deleteAccount(data: { password: string; deleteStuff: boolean }): Promise<{ success: boolean }> {
     const response = await api.post<{ success: boolean }>("/auth/delete-account", data);
     return response.data;
+  },
+
+  async updatePassword(data: { currentPassword?: string; newPassword: string }): Promise<{ success: boolean }> {
+    const response = await api.post<{ success: boolean }>("/auth/update-password", data);
+    return response.data;
   }
 };

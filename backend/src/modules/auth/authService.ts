@@ -10,6 +10,7 @@ export type JwtPayload = {
   email: string;
   role: UserRole;
   name?: string;
+  isGoogleUser?: boolean;
 };
 
 const signToken = (
@@ -120,7 +121,9 @@ export const authService = {
       const tokens = createTokens({
         id: user.id,
         email: user.email,
-        role: user.role
+        role: user.role,
+        name: user.name,
+        isGoogleUser: user.isGoogleUser
       });
 
       return {
@@ -129,7 +132,8 @@ export const authService = {
           id: user.id,
           name: user.name,
           email: user.email,
-          role: user.role
+          role: user.role,
+          isGoogleUser: user.isGoogleUser
         }
       };
     } catch (error) {
@@ -155,7 +159,9 @@ export const authService = {
       return createTokens({
         id: decoded.id,
         email: decoded.email,
-        role: decoded.role
+        role: decoded.role,
+        name: decoded.name,
+        isGoogleUser: decoded.isGoogleUser
       });
     } catch {
       throw new AppError("Invalid refresh token", 401);
@@ -337,6 +343,55 @@ export const authService = {
     } catch (error) {
       if (error instanceof AppError) throw error;
       throw new AppError("Failed to delete user account", 500);
+    }
+  },
+
+  async updatePassword(userId: string, currentPassword: string | undefined, newPassword: string) {
+    try {
+      const user = await runDbOperation(
+        prisma.user.findUnique({ where: { id: userId } }),
+        "looking up user account for password update"
+      );
+
+      if (!user) {
+        throw new AppError("User not found", 404);
+      }
+
+      if (!user.isGoogleUser) {
+        if (!currentPassword) {
+          throw new AppError("Current password is required", 400);
+        }
+        const passwordMatches = await bcrypt.compare(currentPassword, user.password);
+        if (!passwordMatches) {
+          throw new AppError("Incorrect current password", 400);
+        }
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+      const updatedUser = await runDbOperation(
+        prisma.user.update({
+          where: { id: userId },
+          data: {
+            password: hashedPassword,
+            isGoogleUser: false
+          }
+        }),
+        "updating user password"
+      );
+
+      const tokens = createTokens({
+        id: updatedUser.id,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        name: updatedUser.name,
+        isGoogleUser: false
+      });
+
+      return { success: true, ...tokens };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError("Failed to update password", 500);
     }
   }
 };

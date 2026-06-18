@@ -27,6 +27,10 @@ const deleteAccountSchema = zod_1.z.object({
     password: zod_1.z.string().min(1),
     deleteStuff: zod_1.z.boolean()
 });
+const updatePasswordSchema = zod_1.z.object({
+    currentPassword: zod_1.z.string().optional(),
+    newPassword: zod_1.z.string().min(8)
+});
 const validateBody = (schema) => (req, _res, next) => {
     const result = schema.safeParse(req.body);
     if (!result.success) {
@@ -45,6 +49,7 @@ exports.authRouter.post("/refresh", validateBody(refreshSchema), authController_
 exports.authRouter.post("/logout", authMiddleware_1.verifyToken, authController_1.authController.logout);
 exports.authRouter.get("/delete-preview", authMiddleware_1.verifyToken, authController_1.authController.deletePreview);
 exports.authRouter.post("/delete-account", authMiddleware_1.verifyToken, validateBody(deleteAccountSchema), authController_1.authController.deleteAccount);
+exports.authRouter.post("/update-password", authMiddleware_1.verifyToken, validateBody(updatePasswordSchema), authController_1.authController.updatePassword);
 exports.authRouter.get("/google", passport_1.default.authenticate("google", { scope: ["profile", "email"], session: false }));
 exports.authRouter.get("/google/callback", passport_1.default.authenticate("google", { failureRedirect: "/login", session: false }), (req, res) => {
     const user = req.user;

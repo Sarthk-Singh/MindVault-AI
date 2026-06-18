@@ -27,6 +27,11 @@ const deleteAccountSchema = z.object({
   deleteStuff: z.boolean()
 });
 
+const updatePasswordSchema = z.object({
+  currentPassword: z.string().optional(),
+  newPassword: z.string().min(8)
+});
+
 const validateBody =
   (schema: z.ZodType): RequestHandler =>
   (req, _res, next) => {
@@ -52,6 +57,7 @@ authRouter.post("/refresh", validateBody(refreshSchema), authController.refresh)
 authRouter.post("/logout", verifyToken, authController.logout);
 authRouter.get("/delete-preview", verifyToken, authController.deletePreview);
 authRouter.post("/delete-account", verifyToken, validateBody(deleteAccountSchema), authController.deleteAccount);
+authRouter.post("/update-password", verifyToken, validateBody(updatePasswordSchema), authController.updatePassword);
 
 authRouter.get("/google", passport.authenticate("google", { scope: ["profile", "email"], session: false }));
 

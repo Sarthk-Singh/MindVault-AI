@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Settings, User, Lock, Mail, Sparkles, CheckCircle2, X, AlertTriangle, ShieldAlert } from "lucide-react";
+import { Settings, User, Lock, Mail, Sparkles, CheckCircle2, X, AlertTriangle, ShieldAlert, XCircle } from "lucide-react";
 import { authApi } from "../lib/api/auth";
 
 export const SettingsPage: React.FC = () => {
@@ -10,6 +10,7 @@ export const SettingsPage: React.FC = () => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isGoogleUser, setIsGoogleUser] = useState(false);
   
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
@@ -74,6 +75,9 @@ export const SettingsPage: React.FC = () => {
         if (payload && payload.email) {
           setEmail(payload.email);
         }
+        if (payload && payload.isGoogleUser) {
+          setIsGoogleUser(true);
+        }
       } catch (e) {
         console.warn("Could not parse email from accessToken", e);
       }
@@ -102,9 +106,9 @@ export const SettingsPage: React.FC = () => {
     window.dispatchEvent(new Event("storage"));
   };
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentPassword || !newPassword || !confirmPassword) {
+    if ((!isGoogleUser && !currentPassword) || !newPassword || !confirmPassword) {
       showToast("Please fill in all password fields.", "error");
       return;
     }
@@ -119,11 +123,21 @@ export const SettingsPage: React.FC = () => {
       return;
     }
 
-    // Mock successful update
-    showToast("Password updated successfully!");
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+    try {
+      await authApi.updatePassword({
+        currentPassword: isGoogleUser ? undefined : currentPassword,
+        newPassword
+      });
+
+      showToast("Password updated successfully!");
+      setIsGoogleUser(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.message || "Failed to update password.";
+      showToast(errMsg, "error");
+    }
   };
 
   return (
@@ -202,19 +216,26 @@ export const SettingsPage: React.FC = () => {
 
             <form onSubmit={handlePasswordSubmit} className="space-y-6">
               {/* Current Password */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest font-display">Current Password</label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <input
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full bg-slate-950/40 border border-slate-800 focus:border-primary/50 rounded-xl py-3 pl-11 pr-4 text-slate-200 outline-none text-sm input-glow transition-all"
-                    placeholder="••••••••"
-                  />
+              {!isGoogleUser ? (
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest font-display">Current Password</label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="w-full bg-slate-950/40 border border-slate-800 focus:border-primary/50 rounded-xl py-3 pl-11 pr-4 text-slate-200 outline-none text-sm input-glow transition-all"
+                      placeholder="••••••••"
+                    />
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="p-4 bg-sky-500/10 border border-sky-500/20 rounded-2xl text-sky-400 text-xs leading-relaxed">
+                  <p className="font-semibold">Connected with Google</p>
+                  <p className="mt-1 text-sky-400/80">You don't have an account password set. You can set a password below to enable direct email/password sign-in and authorize actions like account deletion.</p>
+                </div>
+              )}
 
               {/* New Password */}
               <div className="space-y-2">
@@ -326,11 +347,18 @@ export const SettingsPage: React.FC = () => {
     </div>
 
     {/* Floating toast notification */}
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 glass-panel p-4 rounded-2xl bg-slate-900 border-emerald-500/30 shadow-2xl animate-in fade-in slide-in-from-bottom-5 duration-300">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+      {toast && createPortal(
+        <div className={`fixed bottom-6 right-6 z-[100] flex items-center gap-3 glass-panel p-4 rounded-2xl bg-slate-900 shadow-2xl animate-in fade-in slide-in-from-bottom-5 duration-300 border ${
+          toast.type === "error" ? "border-red-500/30" : "border-emerald-500/30"
+        }`}>
+          {toast.type === "error" ? (
+            <XCircle className="w-5 h-5 text-red-400 shrink-0" />
+          ) : (
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          )}
           <span className="text-xs font-semibold text-slate-200">{toast.message}</span>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Account Deletion Modal */}

@@ -34,7 +34,8 @@ if (env_1.env.GOOGLE_CLIENT_ID && env_1.env.GOOGLE_CLIENT_SECRET) {
                         name: profile.displayName || "Google User",
                         email,
                         password: hashedPassword,
-                        role: "TEAM_MEMBER"
+                        role: "TEAM_MEMBER",
+                        isGoogleUser: true
                     }
                 });
             }
@@ -43,7 +44,8 @@ if (env_1.env.GOOGLE_CLIENT_ID && env_1.env.GOOGLE_CLIENT_SECRET) {
                 id: user.id,
                 email: user.email,
                 role: user.role,
-                name: user.name
+                name: user.name,
+                isGoogleUser: user.isGoogleUser
             });
             // Pass user along with tokens to callback
             return done(null, {
