@@ -34,7 +34,14 @@ export const Login: React.FC = () => {
     onSuccess: (data) => {
       const name = data.user?.name || "Alex Rivera";
       sessionStorage.setItem("userName", name);
-      navigate("/");
+      
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get("redirect");
+      if (redirect) {
+        navigate(redirect);
+      } else {
+        navigate("/");
+      }
     },
     onError: () => {
       setValue("password", "");
@@ -173,6 +180,12 @@ export const Login: React.FC = () => {
               <button 
                 type="button"
                 onClick={() => {
+                  const params = new URLSearchParams(window.location.search);
+                  const redirect = params.get("redirect");
+                  if (redirect) {
+                    sessionStorage.setItem("loginRedirect", redirect);
+                  }
+
                   const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
                   const baseUrl = apiUrl.endsWith("/api") ? apiUrl.slice(0, -4) : apiUrl;
                   window.location.href = `${baseUrl}/api/auth/google`;

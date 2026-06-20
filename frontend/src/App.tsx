@@ -14,6 +14,7 @@ import TeamLibrary from "./pages/TeamLibrary";
 import Settings from "./pages/Settings";
 import Integrations from "./pages/Integrations";
 import HelpCenter from "./pages/HelpCenter";
+import JoinWorkspace from "./pages/JoinWorkspace";
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/join/:token" element={<JoinWorkspace />} />
 
         {/* Protected Routes */}
         <Route element={<PrivateRoute />}>

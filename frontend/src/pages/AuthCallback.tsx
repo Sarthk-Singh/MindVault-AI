@@ -22,7 +22,13 @@ export const AuthCallback: React.FC = () => {
         sessionStorage.setItem("userName", "Google User");
       }
 
-      navigate("/");
+      const redirect = sessionStorage.getItem("loginRedirect");
+      if (redirect) {
+        sessionStorage.removeItem("loginRedirect");
+        navigate(redirect);
+      } else {
+        navigate("/");
+      }
     } else {
       navigate("/login");
     }

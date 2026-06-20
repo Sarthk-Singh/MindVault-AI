@@ -8,6 +8,7 @@ import { meetingRouter } from "./modules/meeting/meetingRouter";
 import { aiRouter } from "./modules/ai/aiRouter";
 import { uploadRouter } from "./modules/upload/uploadRouter";
 import { searchRouter } from "./modules/search/searchRouter";
+import { userRouter } from "./modules/user/userRouter";
 import { errorHandler } from "./middleware/errorHandler";
 import "./config/passport";
 
@@ -23,6 +24,7 @@ app.use(express.json());
 app.use("/api/auth", authRouter);
 app.use("/api/workspaces", workspaceRouter);
 app.use("/api/meetings", meetingRouter);
+app.use("/api/users", userRouter);
 app.use("/api", aiRouter);
 app.use("/api", uploadRouter);
 app.use("/api/search", searchRouter);

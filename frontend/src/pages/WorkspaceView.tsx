@@ -15,7 +15,10 @@ import {
   ChevronRight,
   X,
   User,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Link,
+  Copy,
+  Check
 } from "lucide-react";
 
 const inviteSchema = z.object({
@@ -40,6 +43,18 @@ export const WorkspaceView: React.FC = () => {
   const [isMeetingOpen, setIsMeetingOpen] = useState(false);
   const [searchFilter, setSearchFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Statuses");
+
+  // Invite modal states
+  const [inviteTab, setInviteTab] = useState<"id" | "link" | "email">("id");
+  const [searchId, setSearchId] = useState("");
+  const [searchedUser, setSearchedUser] = useState<{ id: string; name: string; email: string; userId: string } | null>(null);
+  const [isSearchingUser, setIsSearchingUser] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [isInvitingById, setIsInvitingById] = useState(false);
+
+  const [inviteLink, setInviteLink] = useState("");
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   // Forms
   const inviteForm = useForm<InviteInput>({
@@ -104,6 +119,72 @@ export const WorkspaceView: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
+  const handleOpenInvite = () => {
+    setIsInviteOpen(true);
+    setInviteTab("id");
+    setSearchId("");
+    setSearchedUser(null);
+    setSearchError("");
+    setInviteLink("");
+  };
+
+  const handleCloseInvite = () => {
+    setIsInviteOpen(false);
+    setSearchId("");
+    setSearchedUser(null);
+    setSearchError("");
+    setInviteLink("");
+    inviteForm.reset();
+  };
+
+  const handleSearchUser = async () => {
+    if (!searchId.trim()) return;
+    setIsSearchingUser(true);
+    setSearchError("");
+    setSearchedUser(null);
+    try {
+      const user = await workspacesApi.searchUserById(searchId.trim());
+      setSearchedUser(user);
+    } catch (err: any) {
+      setSearchError(err?.response?.data?.message || "User not found. Make sure the ID is correct (format: MV-XXXX).");
+    } finally {
+      setIsSearchingUser(false);
+    }
+  };
+
+  const handleInviteById = async () => {
+    if (!searchedUser) return;
+    setIsInvitingById(true);
+    setSearchError("");
+    try {
+      await workspacesApi.inviteById(id!, searchedUser.userId);
+      queryClient.invalidateQueries({ queryKey: ["workspace", id] });
+      handleCloseInvite();
+    } catch (err: any) {
+      setSearchError(err?.response?.data?.message || "Failed to invite user by ID.");
+    } finally {
+      setIsInvitingById(false);
+    }
+  };
+
+  const handleGenerateLink = async () => {
+    setIsGeneratingLink(true);
+    try {
+      const link = await workspacesApi.generateInviteLink(id!);
+      setInviteLink(link);
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setIsGeneratingLink(false);
+    }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(inviteLink);
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 2000);
+  };
+
   const handleInviteSubmit = (data: InviteInput) => {
     inviteMutation.mutate(data);
   };
@@ -136,7 +217,7 @@ export const WorkspaceView: React.FC = () => {
               Members ({members.length})
             </h3>
             <button
-              onClick={() => setIsInviteOpen(true)}
+              onClick={handleOpenInvite}
               className="text-xs font-medium text-sky-400 hover:text-sky-300 transition-colors"
             >
               Invite
@@ -267,75 +348,245 @@ export const WorkspaceView: React.FC = () => {
       {/* Invite Member Modal */}
       {isInviteOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-md">
-          <div className="modal-backdrop absolute inset-0" onClick={() => setIsInviteOpen(false)} />
-          <div className="relative bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-[500px] shadow-2xl overflow-hidden p-8 flex flex-col gap-6 z-10 animate-in fade-in zoom-in duration-300">
+          <div className="modal-backdrop absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={handleCloseInvite} />
+          <div className="relative bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-[500px] shadow-2xl overflow-hidden p-8 flex flex-col gap-5 z-10 animate-in fade-in zoom-in duration-300">
             <div className="flex justify-between items-start">
-              <h3 className="text-lg font-semibold text-white font-display">Invite Team Member</h3>
+              <h3 className="text-lg font-bold text-white font-display">Invite to Workspace</h3>
               <button
-                onClick={() => setIsInviteOpen(false)}
-                className="p-1 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                onClick={handleCloseInvite}
+                className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={inviteForm.handleSubmit(handleInviteSubmit)} className="space-y-6">
-              {/* Member email */}
-              <div className="input-group relative">
-                <input
-                  type="email"
-                  placeholder=" "
-                  id="invite-email"
-                  className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3.5 text-slate-200 outline-none input-glow transition-all duration-300 peer text-sm"
-                  {...inviteForm.register("email")}
-                />
-                <label htmlFor="invite-email" className="floating-label absolute left-4 top-3.5 text-slate-500 text-sm">
-                  Work Email Address
-                </label>
-                {inviteForm.formState.errors.email && (
-                  <p className="text-error text-xs mt-1 pl-1">{inviteForm.formState.errors.email.message}</p>
+            {/* Tabs Navigation */}
+            <div className="flex border-b border-slate-800/80 mb-2">
+              <button
+                type="button"
+                onClick={() => setInviteTab("id")}
+                className={`flex-1 pb-3 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+                  inviteTab === "id"
+                    ? "border-sky-500 text-sky-400 font-bold"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                Invite by ID
+              </button>
+              <button
+                type="button"
+                onClick={() => setInviteTab("link")}
+                className={`flex-1 pb-3 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+                  inviteTab === "link"
+                    ? "border-sky-500 text-sky-400 font-bold"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                Invite Link
+              </button>
+              <button
+                type="button"
+                onClick={() => setInviteTab("email")}
+                className={`flex-1 pb-3 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+                  inviteTab === "email"
+                    ? "border-sky-500 text-sky-400 font-bold"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                Invite by Email
+              </button>
+            </div>
+
+            {/* Tab 1: Invite by ID */}
+            {inviteTab === "id" && (
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest font-display">User ID Code</label>
+                  <p className="text-[11px] text-slate-500">Search for a user by their unique code (e.g. MV-XXXX) to directly add them.</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={searchId}
+                      onChange={(e) => setSearchId(e.target.value)}
+                      placeholder="Enter user ID (e.g. MV-5084)"
+                      className="flex-grow bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 outline-none text-sm focus:border-sky-500/50 transition-all placeholder:text-slate-600"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSearchUser}
+                      disabled={isSearchingUser || !searchId.trim()}
+                      className="px-5 py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 hover:text-white rounded-xl text-xs font-semibold transition-all cursor-pointer shrink-0"
+                    >
+                      {isSearchingUser ? "Searching..." : "Search"}
+                    </button>
+                  </div>
+                </div>
+
+                {searchError && (
+                  <p className="text-red-400 text-xs font-semibold mt-1 pl-1">{searchError}</p>
+                )}
+
+                {searchedUser && (
+                  <div className="p-4 bg-sky-500/5 border border-sky-500/10 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-750 flex items-center justify-center overflow-hidden shrink-0">
+                        <img
+                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(searchedUser.name)}`}
+                          alt="avatar"
+                          className="w-full h-full"
+                        />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-white">{searchedUser.name}</p>
+                        <p className="text-[11px] text-slate-400">{searchedUser.email}</p>
+                        <span className="text-[9px] font-bold text-sky-400 uppercase font-mono bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded-full mt-1 inline-block">
+                          {searchedUser.userId}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-3 border-t border-slate-800/60">
+                      <button
+                        type="button"
+                        onClick={() => setSearchedUser(null)}
+                        className="px-4 py-2 border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-semibold rounded-xl transition-all cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleInviteById}
+                        disabled={isInvitingById}
+                        className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-sky-600/15 transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        {isInvitingById ? "Adding..." : "Add to Workspace"}
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
+            )}
 
-              {/* Role setting */}
-              <div className="input-group relative">
-                <select
-                  id="invite-role"
-                  className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3.5 text-slate-200 outline-none input-glow transition-all duration-300 peer text-sm appearance-none cursor-pointer"
-                  {...inviteForm.register("role")}
-                >
-                  <option value="TEAM_MEMBER" className="bg-slate-900 text-slate-200">TEAM_MEMBER</option>
-                  <option value="WORKSPACE_MANAGER" className="bg-slate-900 text-slate-200">WORKSPACE_MANAGER</option>
-                  <option value="MEETING_OWNER" className="bg-slate-900 text-slate-200">MEETING_OWNER</option>
-                  <option value="ADMIN" className="bg-slate-900 text-slate-200">ADMIN</option>
-                </select>
-                <label htmlFor="invite-role" className="floating-label absolute left-4 top-3.5 text-slate-500 text-sm">
-                  Role Permission
-                </label>
-                <div className="absolute right-4 top-3.5 text-slate-500 pointer-events-none">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                  </svg>
+            {/* Tab 2: Invite Link */}
+            {inviteTab === "link" && (
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest font-display">Workspace Join Link</label>
+                  <p className="text-[11px] text-slate-500">Generate an invitation link. Anyone with this link can join this workspace. Links expire automatically in 7 days.</p>
                 </div>
-              </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-800/50">
-                <button
-                  type="button"
-                  onClick={() => setIsInviteOpen(false)}
-                  className="px-5 py-2.5 rounded-xl border border-slate-800 hover:bg-slate-800 text-sm font-semibold transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={inviteMutation.isPending}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0ea5e9] to-[#a855f7] text-white text-sm font-semibold shadow-lg shadow-blue-500/10 hover:opacity-90 transition-all disabled:opacity-50"
-                >
-                  {inviteMutation.isPending ? "Inviting..." : "Send Invitation"}
-                </button>
+                {!inviteLink ? (
+                  <button
+                    type="button"
+                    onClick={handleGenerateLink}
+                    disabled={isGeneratingLink}
+                    className="w-full py-3.5 bg-gradient-to-r from-sky-500 to-purple-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-500/20 hover:opacity-90 transition-all cursor-pointer flex justify-center items-center gap-2"
+                  >
+                    {isGeneratingLink ? (
+                      <span>Generating Link...</span>
+                    ) : (
+                      <>
+                        <Link className="w-4 h-4" />
+                        <span>Generate Invitation Link</span>
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <div className="space-y-3 animate-in fade-in duration-300">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={inviteLink}
+                        className="flex-grow bg-slate-950/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-300 outline-none text-xs font-mono select-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCopyLink}
+                        className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+                      >
+                        {copySuccess ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="text-emerald-400">Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-amber-400/80 leading-relaxed bg-amber-500/5 border border-amber-500/10 p-3 rounded-xl flex gap-2 items-start">
+                      <span className="font-semibold shrink-0">⚠️ Notice:</span>
+                      <span>This link allows instant access to the workspace. Share it carefully. It will expire after 7 days.</span>
+                    </p>
+                  </div>
+                )}
               </div>
-            </form>
+            )}
+
+            {/* Tab 3: Invite by Email */}
+            {inviteTab === "email" && (
+              <form onSubmit={inviteForm.handleSubmit(handleInviteSubmit)} className="space-y-5">
+                {/* Member email */}
+                <div className="input-group relative">
+                  <input
+                    type="email"
+                    placeholder=" "
+                    id="invite-email"
+                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3.5 text-slate-200 outline-none input-glow transition-all duration-300 peer text-sm"
+                    {...inviteForm.register("email")}
+                  />
+                  <label htmlFor="invite-email" className="floating-label absolute left-4 top-3.5 text-slate-500 text-sm">
+                    Work Email Address
+                  </label>
+                  {inviteForm.formState.errors.email && (
+                    <p className="text-error text-xs mt-1 pl-1">{inviteForm.formState.errors.email.message}</p>
+                  )}
+                </div>
+
+                {/* Role setting */}
+                <div className="input-group relative">
+                  <select
+                    id="invite-role"
+                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3.5 text-slate-200 outline-none input-glow transition-all duration-300 peer text-sm appearance-none cursor-pointer"
+                    {...inviteForm.register("role")}
+                  >
+                    <option value="TEAM_MEMBER" className="bg-slate-900 text-slate-200">TEAM_MEMBER</option>
+                    <option value="WORKSPACE_MANAGER" className="bg-slate-900 text-slate-200">WORKSPACE_MANAGER</option>
+                    <option value="MEETING_OWNER" className="bg-slate-900 text-slate-200">MEETING_OWNER</option>
+                    <option value="ADMIN" className="bg-slate-900 text-slate-200">ADMIN</option>
+                  </select>
+                  <label htmlFor="invite-role" className="floating-label absolute left-4 top-3.5 text-slate-500 text-sm">
+                    Role Permission
+                  </label>
+                  <div className="absolute right-4 top-3.5 text-slate-500 pointer-events-none">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800/50">
+                  <button
+                    type="button"
+                    onClick={handleCloseInvite}
+                    className="px-5 py-2.5 rounded-xl border border-slate-800 hover:bg-slate-800 text-sm font-semibold transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={inviteMutation.isPending}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0ea5e9] to-[#a855f7] text-white text-sm font-semibold shadow-lg shadow-blue-500/10 hover:opacity-90 transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {inviteMutation.isPending ? "Inviting..." : "Send Invitation"}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

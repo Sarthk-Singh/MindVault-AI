@@ -1,6 +1,8 @@
 import { type Prisma, type UserRole } from "@prisma/client";
+import crypto from "crypto";
 import { prisma } from "../../config/prisma";
 import { AppError } from "../../middleware/errorHandler";
+import { env } from "../../config/env";
 
 export const workspaceService = {
   async createWorkspace(name: string, ownerId: string) {
@@ -54,6 +56,150 @@ export const workspaceService = {
       }
 
       throw new AppError("Failed to invite workspace member");
+    }
+  },
+
+  async generateInviteLink(workspaceId: string, createdById: string) {
+    try {
+      const isMember = await prisma.workspaceMember.findUnique({
+        where: {
+          workspaceId_userId: {
+            workspaceId,
+            userId: createdById
+          }
+        }
+      });
+
+      if (!isMember) {
+        throw new AppError("Forbidden: You must be a member of the workspace to generate invite links", 403);
+      }
+
+      const token = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days expiration
+
+      const invite = await prisma.workspaceInvite.create({
+        data: {
+          workspaceId,
+          token,
+          expiresAt,
+          createdById,
+          usedBy: []
+        }
+      });
+
+      return { inviteUrl: `${env.FRONTEND_URL}/join/${invite.token}` };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError("Failed to generate invite link", 500);
+    }
+  },
+
+  async joinWorkspace(token: string, userId: string) {
+    try {
+      const invite = await prisma.workspaceInvite.findUnique({
+        where: { token },
+        include: { workspace: true }
+      });
+
+      if (!invite) {
+        throw new AppError("Invalid or expired invite link", 404);
+      }
+
+      if (invite.expiresAt < new Date()) {
+        throw new AppError("Invite link has expired", 400);
+      }
+
+      const existingMember = await prisma.workspaceMember.findUnique({
+        where: {
+          workspaceId_userId: {
+            workspaceId: invite.workspaceId,
+            userId
+          }
+        }
+      });
+
+      if (existingMember) {
+        return {
+          success: true,
+          workspaceId: invite.workspaceId,
+          workspaceName: invite.workspace.name
+        };
+      }
+
+      await prisma.workspaceMember.create({
+        data: {
+          workspaceId: invite.workspaceId,
+          userId,
+          role: "TEAM_MEMBER"
+        }
+      });
+
+      await prisma.workspaceInvite.update({
+        where: { token },
+        data: {
+          usedBy: {
+            push: userId
+          }
+        }
+      });
+
+      return {
+        success: true,
+        workspaceId: invite.workspaceId,
+        workspaceName: invite.workspace.name
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError("Failed to join workspace", 500);
+    }
+  },
+
+  async inviteById(workspaceId: string, currentUserId: string, targetUserCode: string) {
+    try {
+      const targetUser = await prisma.user.findUnique({
+        where: { userId: targetUserCode }
+      });
+
+      if (!targetUser) {
+        throw new AppError("User not found with the provided ID code", 404);
+      }
+
+      const isMember = await prisma.workspaceMember.findUnique({
+        where: {
+          workspaceId_userId: {
+            workspaceId,
+            userId: currentUserId
+          }
+        }
+      });
+
+      if (!isMember) {
+        throw new AppError("Forbidden: You must be a member of this workspace to invite others", 403);
+      }
+
+      const existingMember = await prisma.workspaceMember.findUnique({
+        where: {
+          workspaceId_userId: {
+            workspaceId,
+            userId: targetUser.id
+          }
+        }
+      });
+
+      if (existingMember) {
+        throw new AppError("User is already a member of this workspace", 400);
+      }
+
+      await prisma.workspaceMember.create({
+        data: {
+          workspaceId,
+          userId: targetUser.id,
+          role: "TEAM_MEMBER"
+        }
+      });
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError("Failed to invite user by ID", 500);
     }
   },
 
@@ -131,4 +277,5 @@ export const workspaceService = {
     }
   }
 };
+
 

@@ -33,6 +33,10 @@ const validateBody =
     next();
   };
 
+const inviteByIdSchema = z.object({
+  userId: z.string().min(1)
+});
+
 export const workspaceRouter = Router();
 
 workspaceRouter.use(verifyToken);
@@ -41,4 +45,8 @@ workspaceRouter.get("/:id", workspaceController.getWorkspaceById);
 workspaceRouter.post("/", validateBody(createWorkspaceSchema), workspaceController.createWorkspace);
 workspaceRouter.patch("/:id", validateBody(updateWorkspaceSchema), workspaceController.updateWorkspace);
 workspaceRouter.post("/:id/invite", validateBody(inviteMemberSchema), workspaceController.inviteMember);
+workspaceRouter.post("/:id/invite-link", workspaceController.generateInviteLink);
+workspaceRouter.post("/join/:token", workspaceController.joinWorkspace);
+workspaceRouter.post("/:id/invite-by-id", validateBody(inviteByIdSchema), workspaceController.inviteById);
+
 

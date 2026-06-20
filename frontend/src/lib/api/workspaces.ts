@@ -51,5 +51,27 @@ export const workspacesApi = {
       role
     });
     return response.data.member;
+  },
+
+  async generateInviteLink(workspaceId: string): Promise<string> {
+    const response = await api.post<{ inviteUrl: string }>(`/workspaces/${workspaceId}/invite-link`);
+    return response.data.inviteUrl;
+  },
+
+  async inviteById(workspaceId: string, userId: string): Promise<void> {
+    await api.post(`/workspaces/${workspaceId}/invite-by-id`, { userId });
+  },
+
+  async joinWorkspace(token: string): Promise<{ workspaceId: string; workspaceName: string }> {
+    const response = await api.post<{ workspaceId: string; workspaceName: string }>(`/workspaces/join/${token}`);
+    return response.data;
+  },
+
+  async searchUserById(userId: string): Promise<{ id: string; name: string; email: string; userId: string }> {
+    const response = await api.get<{ id: string; name: string; email: string; userId: string }>(`/users/search`, {
+      params: { userId }
+    });
+    return response.data;
   }
 };
+
