@@ -275,6 +275,235 @@ export const workspaceService = {
       }
       throw new AppError("Failed to fetch workspace");
     }
+  },
+
+  async getWorkspaceMembers(workspaceId: string, currentUserId: string) {
+    try {
+      const isMember = await prisma.workspaceMember.findUnique({
+        where: {
+          workspaceId_userId: {
+            workspaceId,
+            userId: currentUserId
+          }
+        }
+      });
+
+      if (!isMember) {
+        throw new AppError("Forbidden: You must be a member of the workspace to view members", 403);
+      }
+
+      const members = await prisma.workspaceMember.findMany({
+        where: { workspaceId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              userId: true
+            }
+          }
+        },
+        orderBy: { joinedAt: "asc" }
+      });
+
+      return members;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError("Failed to fetch workspace members", 500);
+    }
+  },
+
+  async removeWorkspaceMember(workspaceId: string, currentUserId: string, targetUserId: string) {
+    try {
+      const workspace = await prisma.workspace.findUnique({
+        where: { id: workspaceId }
+      });
+
+      if (!workspace) {
+        throw new AppError("Workspace not found", 404);
+      }
+
+      if (targetUserId === workspace.ownerId) {
+        throw new AppError("Cannot remove the workspace owner", 400);
+      }
+
+      const currentUserMember = await prisma.workspaceMember.findUnique({
+        where: {
+          workspaceId_userId: {
+            workspaceId,
+            userId: currentUserId
+          }
+        }
+      });
+
+      if (!currentUserMember || (currentUserMember.role !== "ADMIN" && currentUserMember.role !== "WORKSPACE_MANAGER")) {
+        throw new AppError("Forbidden: Only WORKSPACE_MANAGER or ADMIN can remove other members", 403);
+      }
+
+      const targetMember = await prisma.workspaceMember.findUnique({
+        where: {
+          workspaceId_userId: {
+            workspaceId,
+            userId: targetUserId
+          }
+        }
+      });
+
+      if (!targetMember) {
+        throw new AppError("Member not found in this workspace", 404);
+      }
+
+      await prisma.workspaceMember.delete({
+        where: {
+          workspaceId_userId: {
+            workspaceId,
+            userId: targetUserId
+          }
+        }
+      });
+
+      return { success: true };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError("Failed to remove workspace member", 500);
+    }
+  },
+
+  async leaveWorkspace(workspaceId: string, currentUserId: string) {
+    try {
+      const workspace = await prisma.workspace.findUnique({
+        where: { id: workspaceId }
+      });
+
+      if (!workspace) {
+        throw new AppError("Workspace not found", 404);
+      }
+
+      if (currentUserId === workspace.ownerId) {
+        throw new AppError("Transfer ownership before leaving", 400);
+      }
+
+      const isMember = await prisma.workspaceMember.findUnique({
+        where: {
+          workspaceId_userId: {
+            workspaceId,
+            userId: currentUserId
+          }
+        }
+      });
+
+      if (!isMember) {
+        throw new AppError("You are not a member of this workspace", 400);
+      }
+
+      await prisma.workspaceMember.delete({
+        where: {
+          workspaceId_userId: {
+            workspaceId,
+            userId: currentUserId
+          }
+        }
+      });
+
+      return { success: true };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError("Failed to leave workspace", 500);
+    }
+  },
+
+  async getActiveInviteLinks(workspaceId: string, currentUserId: string) {
+    try {
+      const isMember = await prisma.workspaceMember.findUnique({
+        where: {
+          workspaceId_userId: {
+            workspaceId,
+            userId: currentUserId
+          }
+        }
+      });
+
+      if (!isMember) {
+        throw new AppError("Forbidden: You must be a member of the workspace to view invite links", 403);
+      }
+
+      const activeInvites = await prisma.workspaceInvite.findMany({
+        where: {
+          workspaceId,
+          expiresAt: {
+            gte: new Date()
+          }
+        },
+        orderBy: {
+          createdAt: "desc"
+        }
+      });
+
+      return activeInvites;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError("Failed to fetch active invite links", 500);
+    }
+  },
+
+  async updateMemberRole(workspaceId: string, currentUserId: string, targetUserId: string, newRole: UserRole) {
+    try {
+      const workspace = await prisma.workspace.findUnique({
+        where: { id: workspaceId }
+      });
+
+      if (!workspace) {
+        throw new AppError("Workspace not found", 404);
+      }
+
+      if (targetUserId === workspace.ownerId) {
+        throw new AppError("Cannot change the workspace owner's role", 400);
+      }
+
+      const currentUserMember = await prisma.workspaceMember.findUnique({
+        where: {
+          workspaceId_userId: {
+            workspaceId,
+            userId: currentUserId
+          }
+        }
+      });
+
+      if (!currentUserMember || (currentUserMember.role !== "ADMIN" && currentUserMember.role !== "WORKSPACE_MANAGER")) {
+        throw new AppError("Forbidden: Only WORKSPACE_MANAGER or ADMIN can change member roles", 403);
+      }
+
+      const targetMember = await prisma.workspaceMember.findUnique({
+        where: {
+          workspaceId_userId: {
+            workspaceId,
+            userId: targetUserId
+          }
+        }
+      });
+
+      if (!targetMember) {
+        throw new AppError("Member not found in this workspace", 404);
+      }
+
+      const updated = await prisma.workspaceMember.update({
+        where: {
+          workspaceId_userId: {
+            workspaceId,
+            userId: targetUserId
+          }
+        },
+        data: {
+          role: newRole
+        }
+      });
+
+      return updated;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError("Failed to update member role", 500);
+    }
   }
 };
 

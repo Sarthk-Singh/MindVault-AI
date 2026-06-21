@@ -72,6 +72,31 @@ export const workspacesApi = {
       params: { userId }
     });
     return response.data;
+  },
+
+  async getWorkspaceMembers(workspaceId: string): Promise<WorkspaceMember[]> {
+    const response = await api.get<{ members: WorkspaceMember[] }>(`/workspaces/${workspaceId}/members`);
+    return response.data.members;
+  },
+
+  async removeWorkspaceMember(workspaceId: string, userId: string): Promise<{ success: boolean }> {
+    const response = await api.delete<{ success: boolean }>(`/workspaces/${workspaceId}/members/${userId}`);
+    return response.data;
+  },
+
+  async leaveWorkspace(workspaceId: string): Promise<{ success: boolean }> {
+    const response = await api.post<{ success: boolean }>(`/workspaces/${workspaceId}/leave`);
+    return response.data;
+  },
+
+  async getActiveInviteLinks(workspaceId: string): Promise<any[]> {
+    const response = await api.get<{ invites: any[] }>(`/workspaces/${workspaceId}/invite-links`);
+    return response.data.invites;
+  },
+
+  async updateMemberRole(workspaceId: string, userId: string, role: string): Promise<WorkspaceMember> {
+    const response = await api.patch<{ member: WorkspaceMember }>(`/workspaces/${workspaceId}/members/${userId}/role`, { role });
+    return response.data.member;
   }
 };
 

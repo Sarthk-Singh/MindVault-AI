@@ -107,6 +107,72 @@ export const workspaceController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  async getMembers(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        throw new AppError("Authentication is required", 401);
+      }
+      const { id } = req.params;
+      const members = await workspaceService.getWorkspaceMembers(String(id), req.user.id);
+      res.status(200).json({ members });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async removeMember(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        throw new AppError("Authentication is required", 401);
+      }
+      const { id, userId } = req.params;
+      const result = await workspaceService.removeWorkspaceMember(String(id), req.user.id, String(userId));
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async leaveWorkspace(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        throw new AppError("Authentication is required", 401);
+      }
+      const { id } = req.params;
+      const result = await workspaceService.leaveWorkspace(String(id), req.user.id);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getActiveInviteLinks(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        throw new AppError("Authentication is required", 401);
+      }
+      const { id } = req.params;
+      const invites = await workspaceService.getActiveInviteLinks(String(id), req.user.id);
+      res.status(200).json({ invites });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async updateMemberRole(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        throw new AppError("Authentication is required", 401);
+      }
+      const { id, userId } = req.params;
+      const { role } = req.body;
+      const member = await workspaceService.updateMemberRole(String(id), req.user.id, String(userId), role);
+      res.status(200).json({ member });
+    } catch (error) {
+      next(error);
+    }
   }
 };
 

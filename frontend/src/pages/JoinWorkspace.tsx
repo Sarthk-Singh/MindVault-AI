@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { workspacesApi } from "../lib/api/workspaces";
 import { XCircle, Loader2, FolderPlus } from "lucide-react";
+import { CustomCursor } from "../components/CustomCursor";
 
 export const JoinWorkspace: React.FC = () => {
   const { token } = useParams<{ token: string }>();
@@ -44,6 +45,7 @@ export const JoinWorkspace: React.FC = () => {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center p-6 relative">
+      <CustomCursor />
       <div className="absolute inset-0 mesh-gradient opacity-30" />
       
       <div className="relative glass-panel border border-slate-800 bg-slate-900/40 rounded-[32px] p-10 max-w-md w-full shadow-2xl text-center space-y-6 animate-reveal">

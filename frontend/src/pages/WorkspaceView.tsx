@@ -18,7 +18,8 @@ import {
   SlidersHorizontal,
   Link,
   Copy,
-  Check
+  Check,
+  AlertTriangle
 } from "lucide-react";
 
 const inviteSchema = z.object({
@@ -57,6 +58,14 @@ export const WorkspaceView: React.FC = () => {
   const [generateLinkError, setGenerateLinkError] = useState("");
   const [copySuccess, setCopySuccess] = useState(false);
   const [myUserIdCopied, setMyUserIdCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<"meetings" | "members">("meetings");
+  const [copiedLinkToken, setCopiedLinkToken] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    type: "remove" | "leave";
+    targetMemberId?: string;
+    targetMemberName?: string;
+  }>({ isOpen: false, type: "remove" });
 
   // Forms
   const inviteForm = useForm<InviteInput>({
@@ -74,6 +83,64 @@ export const WorkspaceView: React.FC = () => {
     queryFn: () => workspacesApi.getWorkspace(id!),
     enabled: !!id
   });
+
+  const { data: activeLinksData } = useQuery({
+    queryKey: ["activeLinks", id],
+    queryFn: () => workspacesApi.getActiveInviteLinks(id!),
+    enabled: isInviteOpen && inviteTab === "active" && !!id
+  });
+
+  const getCurrentUserId = () => {
+    const token = sessionStorage.getItem("accessToken");
+    if (!token) return "";
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload.id || "";
+    } catch {
+      return "";
+    }
+  };
+
+  const currentUserId = getCurrentUserId();
+  const isManagerOrAdmin = (() => {
+    const currentUserMember = workspace?.members?.find((m) => m.userId === currentUserId);
+    return currentUserMember?.role === "ADMIN" || currentUserMember?.role === "WORKSPACE_MANAGER";
+  })();
+
+  const handleRoleChange = async (memberUserId: string, newRole: string) => {
+    try {
+      await workspacesApi.updateMemberRole(id!, memberUserId, newRole);
+      queryClient.invalidateQueries({ queryKey: ["workspace", id] });
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Failed to update member role");
+    }
+  };
+
+  const handleRemoveMember = async () => {
+    if (!confirmModal.targetMemberId) return;
+    try {
+      await workspacesApi.removeWorkspaceMember(id!, confirmModal.targetMemberId);
+      queryClient.invalidateQueries({ queryKey: ["workspace", id] });
+      setConfirmModal({ isOpen: false, type: "remove" });
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Failed to remove member");
+    }
+  };
+
+  const handleLeaveWorkspace = async () => {
+    try {
+      await workspacesApi.leaveWorkspace(id!);
+      navigate("/");
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Failed to leave workspace");
+    }
+  };
+
+  const handleCopySpecificLink = (linkUrl: string, token: string) => {
+    navigator.clipboard.writeText(linkUrl);
+    setCopiedLinkToken(token);
+    setTimeout(() => setCopiedLinkToken(null), 2000);
+  };
 
   // Mutations
   const inviteMutation = useMutation({
@@ -256,8 +323,34 @@ export const WorkspaceView: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Meetings Section */}
+      {/* Main Content Section */}
       <div className="flex-1 w-full space-y-6">
+        {/* Tab switcher */}
+        <div className="flex gap-4 border-b border-slate-800 pb-3">
+          <button
+            onClick={() => setActiveTab("meetings")}
+            className={`text-sm font-semibold pb-2 border-b-2 transition-all cursor-pointer ${
+              activeTab === "meetings"
+                ? "border-sky-500 text-sky-400 font-bold"
+                : "border-transparent text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            Meetings ({filteredMeetings.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("members")}
+            className={`text-sm font-semibold pb-2 border-b-2 transition-all cursor-pointer ${
+              activeTab === "members"
+                ? "border-sky-500 text-sky-400 font-bold"
+                : "border-transparent text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            Members ({members.length})
+          </button>
+        </div>
+
+        {activeTab === "meetings" && (
+          <div className="space-y-6">
         {/* Controls & Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-1 max-w-md">
@@ -355,9 +448,125 @@ export const WorkspaceView: React.FC = () => {
                 );
               })}
             </div>
+            </div>
           )}
         </div>
       </div>
+    )}
+
+    {/* Members Tab View */}
+    {activeTab === "members" && (
+      <div className="glass-panel rounded-[32px] overflow-hidden border border-slate-800/80 bg-slate-900/10 p-6 space-y-4 w-full">
+        <div className="flex justify-between items-center pb-4 border-b border-slate-800/60">
+          <div>
+            <h3 className="text-base font-bold text-white font-display">Workspace Members</h3>
+            <p className="text-[10px] text-slate-400">View and manage roles or membership</p>
+          </div>
+          {currentUserId !== workspace.ownerId && (
+            <button
+              onClick={() => setConfirmModal({ isOpen: true, type: "leave" })}
+              className="px-3.5 py-2 bg-red-500/10 hover:bg-red-500/25 border border-red-500/20 text-red-400 rounded-xl text-[10px] font-semibold transition-all cursor-pointer"
+            >
+              Leave Workspace
+            </button>
+          )}
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-left text-xs">
+            <thead>
+              <tr className="border-b border-slate-800/80 text-slate-400 font-semibold uppercase tracking-wider">
+                <th className="py-3 px-4">Name</th>
+                <th className="py-3 px-4">Email</th>
+                <th className="py-3 px-4">User ID</th>
+                <th className="py-3 px-4">Role</th>
+                <th className="py-3 px-4">Joined Date</th>
+                <th className="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/40 text-slate-200">
+              {members.map((member) => {
+                const isOwner = member.userId === workspace.ownerId;
+                const isSelf = member.userId === currentUserId;
+                const formattedJoined = new Date(member.joinedAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric"
+                });
+                
+                return (
+                  <tr key={member.id} className="hover:bg-white/5 transition-colors">
+                    <td className="py-3.5 px-4 font-medium text-slate-100">
+                      <div className="flex items-center gap-2">
+                        <span>{member.user?.name || "Workspace Member"}</span>
+                        {isSelf && (
+                          <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-sky-500/10 text-sky-400 border border-sky-500/10 uppercase">
+                            You
+                          </span>
+                        )}
+                        {isOwner && (
+                          <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/10 uppercase">
+                            Owner
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-400">{member.user?.email || "N/A"}</td>
+                    <td className="py-3.5 px-4 font-mono text-slate-400">{member.user?.userId || "N/A"}</td>
+                    <td className="py-3.5 px-4">
+                      {isManagerOrAdmin && !isOwner && !isSelf ? (
+                        <select
+                          value={member.role}
+                          onChange={(e) => handleRoleChange(member.userId, e.target.value)}
+                          className="bg-slate-950/60 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 outline-none cursor-pointer focus:border-sky-500/50"
+                        >
+                          <option value="TEAM_MEMBER">TEAM_MEMBER</option>
+                          <option value="MEETING_OWNER">MEETING_OWNER</option>
+                          <option value="WORKSPACE_MANAGER">WORKSPACE_MANAGER</option>
+                        </select>
+                      ) : (
+                        <span className={`px-2 py-1 rounded-full text-[10px] font-semibold border ${
+                          member.role === "ADMIN" || member.role === "WORKSPACE_MANAGER"
+                            ? "bg-purple-500/10 text-purple-400 border-purple-500/10"
+                            : "bg-slate-500/10 text-slate-400 border-slate-500/10"
+                        }`}>
+                          {member.role}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-400">{formattedJoined}</td>
+                    <td className="py-3.5 px-4 text-right">
+                      {isManagerOrAdmin && !isOwner && !isSelf ? (
+                        <button
+                          onClick={() => setConfirmModal({
+                            isOpen: true,
+                            type: "remove",
+                            targetMemberId: member.userId,
+                            targetMemberName: member.user?.name || "Member"
+                          })}
+                          className="px-2.5 py-1.5 bg-red-500/10 hover:bg-red-500/25 border border-red-500/20 text-red-400 rounded-lg text-[10px] font-semibold transition-all cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      ) : isSelf && !isOwner ? (
+                        <button
+                          onClick={() => setConfirmModal({ isOpen: true, type: "leave" })}
+                          className="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/20 text-amber-400 rounded-lg text-[10px] font-semibold transition-all cursor-pointer"
+                        >
+                          Leave
+                        </button>
+                      ) : (
+                        <span className="text-[10px] text-slate-500 italic">-</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )}
 
       {/* Invite Member Modal */}
       {isInviteOpen && (
@@ -379,7 +588,7 @@ export const WorkspaceView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setInviteTab("id")}
-                className={`flex-1 pb-3 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+                className={`flex-grow pb-3 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
                   inviteTab === "id"
                     ? "border-sky-500 text-sky-400 font-bold"
                     : "border-transparent text-slate-400 hover:text-slate-200"
@@ -390,7 +599,7 @@ export const WorkspaceView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setInviteTab("link")}
-                className={`flex-1 pb-3 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+                className={`flex-grow pb-3 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
                   inviteTab === "link"
                     ? "border-sky-500 text-sky-400 font-bold"
                     : "border-transparent text-slate-400 hover:text-slate-200"
@@ -401,13 +610,24 @@ export const WorkspaceView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setInviteTab("email")}
-                className={`flex-1 pb-3 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+                className={`flex-grow pb-3 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
                   inviteTab === "email"
                     ? "border-sky-500 text-sky-400 font-bold"
                     : "border-transparent text-slate-400 hover:text-slate-200"
                 }`}
               >
                 Invite by Email
+              </button>
+              <button
+                type="button"
+                onClick={() => setInviteTab("active")}
+                className={`flex-grow pb-3 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+                  inviteTab === "active"
+                    ? "border-sky-500 text-sky-400 font-bold"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                Active Links
               </button>
             </div>
 
@@ -628,6 +848,56 @@ export const WorkspaceView: React.FC = () => {
                 </div>
               </form>
             )}
+
+            {/* Tab 4: Active Links */}
+            {inviteTab === "active" && (
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest font-display">Active Invite Links</label>
+                  <p className="text-[11px] text-slate-500">Retrieve or copy invite links that are currently active for this workspace.</p>
+                </div>
+
+                {!activeLinksData || activeLinksData.length === 0 ? (
+                  <div className="text-center py-6 text-slate-400 text-xs italic bg-slate-950/20 border border-slate-800 rounded-xl">
+                    No active invite links found.
+                  </div>
+                ) : (
+                  <div className="max-h-60 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
+                    {activeLinksData.map((invite: any) => {
+                      const linkUrl = `${window.location.origin}/join/${invite.token}`;
+                      const formattedCreated = new Date(invite.createdAt).toLocaleDateString();
+                      const formattedExpires = new Date(invite.expiresAt).toLocaleDateString();
+                      const isCopied = copiedLinkToken === invite.token;
+
+                      return (
+                        <div key={invite.id} className="p-3 bg-slate-950/40 border border-slate-800 rounded-xl space-y-2 text-xs">
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              readOnly
+                              value={linkUrl}
+                              className="flex-grow bg-slate-900/60 border border-slate-850 rounded-lg px-2.5 py-1.5 text-slate-300 outline-none text-[10px] font-mono select-all"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleCopySpecificLink(linkUrl, invite.token)}
+                              className="px-2.5 py-1.5 bg-slate-850 hover:bg-slate-800 text-slate-200 rounded-lg text-[10px] font-semibold transition-colors cursor-pointer shrink-0"
+                            >
+                              {isCopied ? "Copied!" : "Copy"}
+                            </button>
+                          </div>
+                          <div className="flex justify-between text-[10px] text-slate-500 px-1">
+                            <span>Created: {formattedCreated}</span>
+                            <span>Expires: {formattedExpires}</span>
+                            <span className="font-semibold text-sky-400/90">Used: {invite.usedBy?.length || 0} times</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -699,6 +969,56 @@ export const WorkspaceView: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Dialog for Member Actions */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} />
+          
+          <div className="relative bg-slate-900 border border-slate-800 rounded-[24px] w-full max-w-sm p-6 z-10 shadow-2xl animate-reveal text-slate-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                confirmModal.type === "remove" ? "bg-red-500/10 text-red-400" : "bg-amber-500/10 text-amber-400"
+              }`}>
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white font-display">
+                  {confirmModal.type === "remove" ? "Remove Member" : "Leave Workspace"}
+                </h3>
+                <p className="text-[10px] text-slate-400">Confirm this action</p>
+              </div>
+            </div>
+            
+            <p className="text-xs text-slate-400 leading-relaxed mb-6">
+              {confirmModal.type === "remove" 
+                ? `Are you sure you want to remove ${confirmModal.targetMemberName} from the workspace? They will lose access to all meetings and resources.`
+                : "Are you sure you want to leave this workspace? You will no longer be able to access its meetings or details."}
+            </p>
+            
+            <div className="flex justify-end gap-2 pt-4 border-t border-slate-800/60">
+              <button
+                type="button"
+                onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-semibold transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmModal.type === "remove" ? handleRemoveMember : handleLeaveWorkspace}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold shadow-lg transition-all cursor-pointer text-white ${
+                  confirmModal.type === "remove" 
+                    ? "bg-red-600 hover:bg-red-500 shadow-red-600/10" 
+                    : "bg-amber-600 hover:bg-amber-500 shadow-amber-600/10"
+                }`}
+              >
+                Confirm
+              </button>
+            </div>
           </div>
         </div>
       )}
