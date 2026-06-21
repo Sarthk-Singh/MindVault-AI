@@ -34,6 +34,9 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [inviteInput, setInviteInput] = useState("");
+  const [inviteError, setInviteError] = useState("");
   const userName = sessionStorage.getItem("userName") || "Alex Rivera";
 
   // Forms
@@ -80,6 +83,45 @@ export const Dashboard: React.FC = () => {
     createWorkspaceMutation.mutate(data);
   };
 
+  const handleJoinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setInviteError("");
+
+    const input = inviteInput.trim();
+    if (!input) {
+      setInviteError("Please paste a valid invite link");
+      return;
+    }
+
+    let token = "";
+
+    if (input.includes("/join/")) {
+      try {
+        const url = new URL(input.startsWith("http") ? input : `https://${input}`);
+        const pathname = url.pathname;
+        const parts = pathname.split("/join/");
+        if (parts.length > 1) {
+          token = parts[1].split("/")[0].trim();
+        }
+      } catch {
+        const parts = input.split("/join/");
+        token = parts[1].split("/")[0].split("?")[0].trim();
+      }
+    } else {
+      token = input;
+    }
+
+    const tokenRegex = /^[a-zA-Z0-9-]+$/;
+    if (!token || !tokenRegex.test(token)) {
+      setInviteError("Please paste a valid invite link");
+      return;
+    }
+
+    navigate(`/join/${token}`);
+    setIsJoinModalOpen(false);
+    setInviteInput("");
+  };
+
   const workspaceIcons = [
     { icon: "terminal", color: "text-sky-400 bg-sky-500/10" },
     { icon: "brush", color: "text-purple-400 bg-purple-500/10" },
@@ -107,13 +149,22 @@ export const Dashboard: React.FC = () => {
             Here is what's happening across your {workspaces.length} workspaces today.
           </p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="magnetic-target flex items-center gap-2 bg-gradient-to-r from-[#0ea5e9] to-[#a855f7] hover:scale-[1.02] text-white px-6 py-3.5 rounded-xl font-semibold text-sm shadow-xl shadow-blue-500/20 active:scale-[0.98] transition-all cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          Create New Workspace
-        </button>
+        <div className="flex gap-3 flex-wrap">
+          <button
+            onClick={() => setIsJoinModalOpen(true)}
+            className="magnetic-target flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-6 py-3.5 rounded-xl font-semibold text-sm transition-all cursor-pointer border border-slate-700/50"
+          >
+            <Share2 className="w-4 h-4 text-sky-400" />
+            Join with Invite Link
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="magnetic-target flex items-center gap-2 bg-gradient-to-r from-[#0ea5e9] to-[#a855f7] hover:scale-[1.02] text-white px-6 py-3.5 rounded-xl font-semibold text-sm shadow-xl shadow-blue-500/20 active:scale-[0.98] transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            Create New Workspace
+          </button>
+        </div>
       </div>
 
       {/* Grid Statistics */}
@@ -195,12 +246,20 @@ export const Dashboard: React.FC = () => {
           <p className="text-slate-400 text-sm mb-6 max-w-md w-full">
             You haven't created or joined any workspaces yet. Create your first workspace to start organizing your meetings and AI summaries.
           </p>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="px-6 py-3 bg-gradient-to-r from-[#0ea5e9] to-[#a855f7] text-white font-semibold text-sm rounded-xl hover:scale-102 transition-transform cursor-pointer"
-          >
-            Create My First Workspace
-          </button>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => setIsJoinModalOpen(true)}
+              className="px-6 py-3 bg-slate-850 hover:bg-slate-800 text-white font-semibold text-sm rounded-xl transition-all cursor-pointer border border-slate-700"
+            >
+              Join with Invite Link
+            </button>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="px-6 py-3 bg-gradient-to-r from-[#0ea5e9] to-[#a855f7] text-white font-semibold text-sm rounded-xl hover:scale-102 transition-transform cursor-pointer"
+            >
+              Create My First Workspace
+            </button>
+          </div>
         </div>
       ) : (
         <>
@@ -482,6 +541,74 @@ export const Dashboard: React.FC = () => {
                   className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0ea5e9] to-[#a855f7] text-white text-sm font-semibold shadow-lg shadow-blue-500/10 hover:opacity-90 transition-all disabled:opacity-50"
                 >
                   {createWorkspaceMutation.isPending ? "Creating..." : "Create Workspace"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Join Workspace Modal */}
+      {isJoinModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-md">
+          <div className="modal-backdrop absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => {
+            setIsJoinModalOpen(false);
+            setInviteError("");
+            setInviteInput("");
+          }} />
+          <div className="relative bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-[500px] shadow-2xl overflow-hidden p-8 flex flex-col gap-6 z-10 animate-in fade-in zoom-in duration-300">
+            <div className="flex justify-between items-start">
+              <h3 className="text-xl font-bold text-white font-display">Join Workspace</h3>
+              <button
+                onClick={() => {
+                  setIsJoinModalOpen(false);
+                  setInviteError("");
+                  setInviteInput("");
+                }}
+                className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleJoinSubmit} className="space-y-6">
+              <div className="input-group relative">
+                <input
+                  type="text"
+                  placeholder=" "
+                  id="invite-link-input"
+                  className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3.5 text-slate-200 outline-none input-glow transition-all duration-300 peer text-sm"
+                  value={inviteInput}
+                  onChange={(e) => {
+                    setInviteInput(e.target.value);
+                    if (inviteError) setInviteError("");
+                  }}
+                />
+                <label htmlFor="invite-link-input" className="floating-label absolute left-4 top-3.5 text-slate-500 text-sm">
+                  Paste invite link or code
+                </label>
+                {inviteError && (
+                  <p className="text-error text-xs mt-1 pl-1">{inviteError}</p>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-800/50">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsJoinModalOpen(false);
+                    setInviteError("");
+                    setInviteInput("");
+                  }}
+                  className="px-5 py-2.5 rounded-xl border border-slate-800 hover:bg-slate-800 text-sm font-semibold transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0ea5e9] to-[#a855f7] text-white text-sm font-semibold shadow-lg shadow-blue-500/10 hover:opacity-90 transition-all cursor-pointer"
+                >
+                  Join Workspace
                 </button>
               </div>
             </form>
