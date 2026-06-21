@@ -221,7 +221,8 @@ export const workspaceService = {
                   id: true,
                   name: true,
                   email: true,
-                  role: true
+                  role: true,
+                  userId: true
                 }
               }
             }
@@ -246,7 +247,8 @@ export const workspaceService = {
                   id: true,
                   name: true,
                   email: true,
-                  role: true
+                  role: true,
+                  userId: true
                 }
               }
             }

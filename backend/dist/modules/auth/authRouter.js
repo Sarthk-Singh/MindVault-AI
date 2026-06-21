@@ -24,7 +24,7 @@ const refreshSchema = zod_1.z.object({
     refreshToken: zod_1.z.string().min(1)
 });
 const deleteAccountSchema = zod_1.z.object({
-    password: zod_1.z.string().min(1),
+    password: zod_1.z.string().optional(),
     deleteStuff: zod_1.z.boolean()
 });
 const updatePasswordSchema = zod_1.z.object({

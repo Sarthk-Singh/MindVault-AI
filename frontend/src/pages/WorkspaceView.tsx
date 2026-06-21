@@ -46,7 +46,7 @@ export const WorkspaceView: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState("All Statuses");
 
   // Invite modal states
-  const [inviteTab, setInviteTab] = useState<"id" | "link" | "email">("id");
+  const [inviteTab, setInviteTab] = useState<"id" | "link" | "email" | "active">("id");
   const [searchId, setSearchId] = useState("");
   const [searchedUser, setSearchedUser] = useState<{ id: string; name: string; email: string; userId: string } | null>(null);
   const [isSearchingUser, setIsSearchingUser] = useState(false);
@@ -111,6 +111,7 @@ export const WorkspaceView: React.FC = () => {
     try {
       await workspacesApi.updateMemberRole(id!, memberUserId, newRole);
       queryClient.invalidateQueries({ queryKey: ["workspace", id] });
+      alert("Member role updated successfully");
     } catch (err: any) {
       alert(err?.response?.data?.message || "Failed to update member role");
     }
@@ -122,6 +123,7 @@ export const WorkspaceView: React.FC = () => {
       await workspacesApi.removeWorkspaceMember(id!, confirmModal.targetMemberId);
       queryClient.invalidateQueries({ queryKey: ["workspace", id] });
       setConfirmModal({ isOpen: false, type: "remove" });
+      alert("Member removed successfully");
     } catch (err: any) {
       alert(err?.response?.data?.message || "Failed to remove member");
     }
@@ -448,7 +450,6 @@ export const WorkspaceView: React.FC = () => {
                 );
               })}
             </div>
-            </div>
           )}
         </div>
       </div>
@@ -523,6 +524,7 @@ export const WorkspaceView: React.FC = () => {
                           <option value="TEAM_MEMBER">TEAM_MEMBER</option>
                           <option value="MEETING_OWNER">MEETING_OWNER</option>
                           <option value="WORKSPACE_MANAGER">WORKSPACE_MANAGER</option>
+                          <option value="ADMIN">ADMIN</option>
                         </select>
                       ) : (
                         <span className={`px-2 py-1 rounded-full text-[10px] font-semibold border ${
@@ -567,6 +569,7 @@ export const WorkspaceView: React.FC = () => {
         </div>
       </div>
     )}
+      </div>
 
       {/* Invite Member Modal */}
       {isInviteOpen && (

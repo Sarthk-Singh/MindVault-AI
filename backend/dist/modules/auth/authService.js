@@ -184,9 +184,14 @@ exports.authService = {
             if (!user) {
                 throw new errorHandler_1.AppError("User not found", 404);
             }
-            const passwordMatches = await bcryptjs_1.default.compare(password, user.password);
-            if (!passwordMatches) {
-                throw new errorHandler_1.AppError("Incorrect password", 400);
+            if (!user.isGoogleUser) {
+                if (!password) {
+                    throw new errorHandler_1.AppError("Password is required to delete account", 400);
+                }
+                const passwordMatches = await bcryptjs_1.default.compare(password, user.password);
+                if (!passwordMatches) {
+                    throw new errorHandler_1.AppError("Incorrect password", 400);
+                }
             }
             if (deleteStuff) {
                 // Complete cascade deletion

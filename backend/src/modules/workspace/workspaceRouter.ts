@@ -38,7 +38,7 @@ const inviteByIdSchema = z.object({
 });
 
 const updateRoleSchema = z.object({
-  role: z.enum(["TEAM_MEMBER", "MEETING_OWNER", "WORKSPACE_MANAGER"])
+  role: z.enum(["ADMIN", "TEAM_MEMBER", "MEETING_OWNER", "WORKSPACE_MANAGER"])
 });
 
 export const workspaceRouter = Router();
