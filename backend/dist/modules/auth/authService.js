@@ -87,7 +87,8 @@ exports.authService = {
                 email: user.email,
                 role: user.role,
                 name: user.name,
-                isGoogleUser: user.isGoogleUser
+                isGoogleUser: user.isGoogleUser,
+                userId: user.userId
             });
             return {
                 ...tokens,
@@ -96,7 +97,8 @@ exports.authService = {
                     name: user.name,
                     email: user.email,
                     role: user.role,
-                    isGoogleUser: user.isGoogleUser
+                    isGoogleUser: user.isGoogleUser,
+                    userId: user.userId
                 }
             };
         }
@@ -117,7 +119,8 @@ exports.authService = {
                 email: decoded.email,
                 role: decoded.role,
                 name: decoded.name,
-                isGoogleUser: decoded.isGoogleUser
+                isGoogleUser: decoded.isGoogleUser,
+                userId: decoded.userId
             });
         }
         catch {
@@ -284,7 +287,8 @@ exports.authService = {
                 email: updatedUser.email,
                 role: updatedUser.role,
                 name: updatedUser.name,
-                isGoogleUser: false
+                isGoogleUser: false,
+                userId: updatedUser.userId
             });
             return { success: true, ...tokens };
         }

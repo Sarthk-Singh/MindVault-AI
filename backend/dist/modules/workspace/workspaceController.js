@@ -38,6 +38,46 @@ exports.workspaceController = {
             next(error);
         }
     },
+    async generateInviteLink(req, res, next) {
+        try {
+            if (!req.user) {
+                throw new errorHandler_1.AppError("Authentication is required", 401);
+            }
+            const { id } = req.params;
+            const result = await workspaceService_1.workspaceService.generateInviteLink(String(id), req.user.id);
+            res.status(200).json(result);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+    async joinWorkspace(req, res, next) {
+        try {
+            if (!req.user) {
+                throw new errorHandler_1.AppError("Authentication is required", 401);
+            }
+            const { token } = req.params;
+            const result = await workspaceService_1.workspaceService.joinWorkspace(String(token), req.user.id);
+            res.status(200).json(result);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+    async inviteById(req, res, next) {
+        try {
+            if (!req.user) {
+                throw new errorHandler_1.AppError("Authentication is required", 401);
+            }
+            const { id } = req.params;
+            const { userId } = req.body;
+            await workspaceService_1.workspaceService.inviteById(String(id), req.user.id, userId);
+            res.status(200).json({ success: true });
+        }
+        catch (error) {
+            next(error);
+        }
+    },
     async getWorkspaces(req, res, next) {
         try {
             if (!req.user) {

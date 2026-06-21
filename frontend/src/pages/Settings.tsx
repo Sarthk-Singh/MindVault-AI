@@ -6,6 +6,8 @@ import { authApi } from "../lib/api/auth";
 export const SettingsPage: React.FC = () => {
   const [name, setName] = useState("Alex Rivera");
   const [email, setEmail] = useState("alex@company.com");
+  const [role, setRole] = useState("TEAM_MEMBER");
+  const [userCode, setUserCode] = useState("");
   
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -72,11 +74,13 @@ export const SettingsPage: React.FC = () => {
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
-        if (payload && payload.email) {
-          setEmail(payload.email);
-        }
-        if (payload && payload.isGoogleUser) {
-          setIsGoogleUser(true);
+        if (payload) {
+          if (payload.email) setEmail(payload.email);
+          if (payload.role) setRole(payload.role);
+          if (payload.userId) setUserCode(payload.userId);
+          if (payload.isGoogleUser) {
+            setIsGoogleUser(true);
+          }
         }
       } catch (e) {
         console.warn("Could not parse email from accessToken", e);
@@ -311,11 +315,15 @@ export const SettingsPage: React.FC = () => {
               <h4 className="text-white font-semibold text-lg font-display">{name}</h4>
               <p className="text-xs text-slate-500 mt-0.5">{email}</p>
               <span className="mt-4 px-2.5 py-1 rounded-full text-[10px] font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20 uppercase tracking-wider">
-                System Administrator
+                {role}
               </span>
             </div>
             
             <div className="mt-6 pt-6 border-t border-slate-800/60 text-xs text-slate-400 space-y-3 font-medium">
+              <div className="flex justify-between">
+                <span>User ID Code:</span>
+                <span className="text-sky-400 font-semibold font-mono">{userCode}</span>
+              </div>
               <div className="flex justify-between">
                 <span>Account Status:</span>
                 <span className="text-emerald-400 font-semibold flex items-center gap-1">

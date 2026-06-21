@@ -26,6 +26,9 @@ const validateBody = (schema) => (req, _res, next) => {
     req.body = result.data;
     next();
 };
+const inviteByIdSchema = zod_1.z.object({
+    userId: zod_1.z.string().min(1)
+});
 exports.workspaceRouter = (0, express_1.Router)();
 exports.workspaceRouter.use(authMiddleware_1.verifyToken);
 exports.workspaceRouter.get("/", workspaceController_1.workspaceController.getWorkspaces);
@@ -33,3 +36,6 @@ exports.workspaceRouter.get("/:id", workspaceController_1.workspaceController.ge
 exports.workspaceRouter.post("/", validateBody(createWorkspaceSchema), workspaceController_1.workspaceController.createWorkspace);
 exports.workspaceRouter.patch("/:id", validateBody(updateWorkspaceSchema), workspaceController_1.workspaceController.updateWorkspace);
 exports.workspaceRouter.post("/:id/invite", validateBody(inviteMemberSchema), workspaceController_1.workspaceController.inviteMember);
+exports.workspaceRouter.post("/:id/invite-link", workspaceController_1.workspaceController.generateInviteLink);
+exports.workspaceRouter.post("/join/:token", workspaceController_1.workspaceController.joinWorkspace);
+exports.workspaceRouter.post("/:id/invite-by-id", validateBody(inviteByIdSchema), workspaceController_1.workspaceController.inviteById);

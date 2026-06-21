@@ -48,7 +48,8 @@ if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
             email: user.email,
             role: user.role,
             name: user.name,
-            isGoogleUser: user.isGoogleUser
+            isGoogleUser: user.isGoogleUser,
+            userId: user.userId
           });
 
           // Pass user along with tokens to callback

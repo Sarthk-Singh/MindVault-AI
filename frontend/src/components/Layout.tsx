@@ -23,6 +23,9 @@ export const Layout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [userName, setUserName] = useState("Alex Rivera");
+  const [userEmail, setUserEmail] = useState("");
+  const [userRole, setUserRole] = useState("TEAM_MEMBER");
+  const [userCode, setUserCode] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -39,10 +42,17 @@ export const Layout: React.FC = () => {
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
-        if (payload && payload.isGoogleUser) {
-          setIsGoogleUserForceSetup(true);
-        } else {
-          setIsGoogleUserForceSetup(false);
+        if (payload) {
+          if (payload.name) setUserName(payload.name);
+          if (payload.email) setUserEmail(payload.email);
+          if (payload.role) setUserRole(payload.role);
+          if (payload.userId) setUserCode(payload.userId);
+          
+          if (payload.isGoogleUser) {
+            setIsGoogleUserForceSetup(true);
+          } else {
+            setIsGoogleUserForceSetup(false);
+          }
         }
       } catch (e) {
         console.warn("Could not parse token in Layout", e);
@@ -341,22 +351,22 @@ export const Layout: React.FC = () => {
             <div className="space-y-4">
               <div>
                 <label className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider block mb-0.5">Registered Name</label>
-                <p className="text-xs font-semibold text-white">Sarthak Singh</p>
+                <p className="text-xs font-semibold text-white">{userName}</p>
               </div>
 
               <div>
                 <label className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider block mb-0.5">Role / Designation</label>
-                <p className="text-xs font-semibold text-white">STUDENT</p>
+                <p className="text-xs font-semibold text-white">{userRole}</p>
               </div>
 
               <div>
                 <label className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider block mb-0.5">Email</label>
-                <p className="text-xs font-semibold text-white">sarthaksinghddn@gmail.com</p>
+                <p className="text-xs font-semibold text-white">{userEmail}</p>
               </div>
 
               <div>
                 <label className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider block mb-0.5">User ID</label>
-                <p className="text-xs font-semibold text-white font-mono">286</p>
+                <p className="text-xs font-semibold text-white font-mono">{userCode}</p>
               </div>
             </div>
 

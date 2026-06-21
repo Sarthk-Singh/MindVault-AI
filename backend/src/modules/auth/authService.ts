@@ -11,6 +11,7 @@ export type JwtPayload = {
   role: UserRole;
   name?: string;
   isGoogleUser?: boolean;
+  userId?: string;
 };
 
 const signToken = (
@@ -123,7 +124,8 @@ export const authService = {
         email: user.email,
         role: user.role,
         name: user.name,
-        isGoogleUser: user.isGoogleUser
+        isGoogleUser: user.isGoogleUser,
+        userId: user.userId
       });
 
       return {
@@ -133,7 +135,8 @@ export const authService = {
           name: user.name,
           email: user.email,
           role: user.role,
-          isGoogleUser: user.isGoogleUser
+          isGoogleUser: user.isGoogleUser,
+          userId: user.userId
         }
       };
     } catch (error) {
@@ -161,7 +164,8 @@ export const authService = {
         email: decoded.email,
         role: decoded.role,
         name: decoded.name,
-        isGoogleUser: decoded.isGoogleUser
+        isGoogleUser: decoded.isGoogleUser,
+        userId: decoded.userId
       });
     } catch {
       throw new AppError("Invalid refresh token", 401);
@@ -385,7 +389,8 @@ export const authService = {
         email: updatedUser.email,
         role: updatedUser.role,
         name: updatedUser.name,
-        isGoogleUser: false
+        isGoogleUser: false,
+        userId: updatedUser.userId
       });
 
       return { success: true, ...tokens };
