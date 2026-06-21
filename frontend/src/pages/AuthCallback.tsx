@@ -13,11 +13,14 @@ export const AuthCallback: React.FC = () => {
       sessionStorage.setItem("accessToken", token);
       sessionStorage.setItem("refreshToken", refresh);
 
-      // Parse name from token payload
+      // Parse name and userId from token payload
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
         const name = payload.name || "Google User";
         sessionStorage.setItem("userName", name);
+        if (payload.userId) {
+          sessionStorage.setItem("userIdCode", payload.userId);
+        }
       } catch (e) {
         sessionStorage.setItem("userName", "Google User");
       }

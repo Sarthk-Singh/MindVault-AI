@@ -297,5 +297,30 @@ exports.authService = {
                 throw error;
             throw new errorHandler_1.AppError("Failed to update password", 500);
         }
+    },
+    async getCurrentUser(userId) {
+        try {
+            const user = await runDbOperation(prisma_1.prisma.user.findUnique({
+                where: { id: userId },
+                select: {
+                    id: true,
+                    userId: true,
+                    name: true,
+                    email: true,
+                    role: true,
+                    isGoogleUser: true,
+                    createdAt: true
+                }
+            }), "fetching currently authenticated user");
+            if (!user) {
+                throw new errorHandler_1.AppError("User not found", 404);
+            }
+            return user;
+        }
+        catch (error) {
+            if (error instanceof errorHandler_1.AppError)
+                throw error;
+            throw new errorHandler_1.AppError("Failed to fetch current user profile", 500);
+        }
     }
 };

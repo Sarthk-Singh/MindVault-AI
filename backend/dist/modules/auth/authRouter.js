@@ -50,6 +50,7 @@ exports.authRouter.post("/logout", authMiddleware_1.verifyToken, authController_
 exports.authRouter.get("/delete-preview", authMiddleware_1.verifyToken, authController_1.authController.deletePreview);
 exports.authRouter.post("/delete-account", authMiddleware_1.verifyToken, validateBody(deleteAccountSchema), authController_1.authController.deleteAccount);
 exports.authRouter.post("/update-password", authMiddleware_1.verifyToken, validateBody(updatePasswordSchema), authController_1.authController.updatePassword);
+exports.authRouter.get("/me", authMiddleware_1.verifyToken, authController_1.authController.getCurrentUser);
 exports.authRouter.get("/google", passport_1.default.authenticate("google", { scope: ["profile", "email"], session: false }));
 exports.authRouter.get("/google/callback", passport_1.default.authenticate("google", { failureRedirect: "/login", session: false }), (req, res) => {
     const user = req.user;

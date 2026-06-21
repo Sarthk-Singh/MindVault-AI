@@ -34,6 +34,9 @@ export const Login: React.FC = () => {
     onSuccess: (data) => {
       const name = data.user?.name || "Alex Rivera";
       sessionStorage.setItem("userName", name);
+      if (data.user?.userId) {
+        sessionStorage.setItem("userIdCode", data.user.userId);
+      }
       
       const params = new URLSearchParams(window.location.search);
       const redirect = params.get("redirect");

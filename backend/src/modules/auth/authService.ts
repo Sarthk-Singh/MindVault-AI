@@ -230,7 +230,7 @@ export const authService = {
     }
   },
 
-  async deleteAccount(userId: string, password: string, deleteStuff: boolean) {
+  async deleteAccount(userId: string, password: string | undefined, deleteStuff: boolean) {
     try {
       const user = await runDbOperation(
         prisma.user.findUnique({ where: { id: userId } }),
@@ -241,9 +241,14 @@ export const authService = {
         throw new AppError("User not found", 404);
       }
 
-      const passwordMatches = await bcrypt.compare(password, user.password);
-      if (!passwordMatches) {
-        throw new AppError("Incorrect password", 400);
+      if (!user.isGoogleUser) {
+        if (!password) {
+          throw new AppError("Password is required to delete account", 400);
+        }
+        const passwordMatches = await bcrypt.compare(password, user.password);
+        if (!passwordMatches) {
+          throw new AppError("Incorrect password", 400);
+        }
       }
 
       if (deleteStuff) {
@@ -397,6 +402,35 @@ export const authService = {
     } catch (error) {
       if (error instanceof AppError) throw error;
       throw new AppError("Failed to update password", 500);
+    }
+  },
+
+  async getCurrentUser(userId: string) {
+    try {
+      const user = await runDbOperation(
+        prisma.user.findUnique({
+          where: { id: userId },
+          select: {
+            id: true,
+            userId: true,
+            name: true,
+            email: true,
+            role: true,
+            isGoogleUser: true,
+            createdAt: true
+          }
+        }),
+        "fetching currently authenticated user"
+      );
+
+      if (!user) {
+        throw new AppError("User not found", 404);
+      }
+
+      return user;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError("Failed to fetch current user profile", 500);
     }
   }
 };

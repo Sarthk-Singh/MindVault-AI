@@ -75,5 +75,15 @@ export const authController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  async getCurrentUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = (req as any).user?.id;
+      const user = await authService.getCurrentUser(userId);
+      res.status(200).json(user);
+    } catch (error) {
+      next(error);
+    }
   }
 };

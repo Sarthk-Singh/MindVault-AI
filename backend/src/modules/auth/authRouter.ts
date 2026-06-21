@@ -23,7 +23,7 @@ const refreshSchema = z.object({
 });
 
 const deleteAccountSchema = z.object({
-  password: z.string().min(1),
+  password: z.string().optional(),
   deleteStuff: z.boolean()
 });
 
@@ -58,6 +58,7 @@ authRouter.post("/logout", verifyToken, authController.logout);
 authRouter.get("/delete-preview", verifyToken, authController.deletePreview);
 authRouter.post("/delete-account", verifyToken, validateBody(deleteAccountSchema), authController.deleteAccount);
 authRouter.post("/update-password", verifyToken, validateBody(updatePasswordSchema), authController.updatePassword);
+authRouter.get("/me", verifyToken, authController.getCurrentUser);
 
 authRouter.get("/google", passport.authenticate("google", { scope: ["profile", "email"], session: false }));
 

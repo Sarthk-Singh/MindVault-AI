@@ -6,6 +6,7 @@ export interface User {
   email: string;
   role: "ADMIN" | "WORKSPACE_MANAGER" | "MEETING_OWNER" | "TEAM_MEMBER";
   createdAt: string;
+  userId?: string;
 }
 
 export interface AuthResponse {
@@ -50,13 +51,18 @@ export const authApi = {
     return response.data;
   },
 
-  async deleteAccount(data: { password: string; deleteStuff: boolean }): Promise<{ success: boolean }> {
+  async deleteAccount(data: { password?: string; deleteStuff: boolean }): Promise<{ success: boolean }> {
     const response = await api.post<{ success: boolean }>("/auth/delete-account", data);
     return response.data;
   },
 
   async updatePassword(data: { currentPassword?: string; newPassword: string }): Promise<{ success: boolean }> {
     const response = await api.post<{ success: boolean }>("/auth/update-password", data);
+    return response.data;
+  },
+
+  async getCurrentUser(): Promise<User> {
+    const response = await api.get<User>("/auth/me");
     return response.data;
   }
 };

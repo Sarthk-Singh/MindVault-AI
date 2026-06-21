@@ -73,5 +73,15 @@ exports.authController = {
         catch (error) {
             next(error);
         }
+    },
+    async getCurrentUser(req, res, next) {
+        try {
+            const userId = req.user?.id;
+            const user = await authService_1.authService.getCurrentUser(userId);
+            res.status(200).json(user);
+        }
+        catch (error) {
+            next(error);
+        }
     }
 };

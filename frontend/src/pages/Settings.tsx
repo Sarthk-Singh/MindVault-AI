@@ -38,7 +38,7 @@ export const SettingsPage: React.FC = () => {
 
   const handleDeleteAccountConfirm = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!deletePassword) {
+    if (!isGoogleUser && !deletePassword) {
       showToast("Please enter your password to confirm.", "error");
       return;
     }
@@ -46,7 +46,7 @@ export const SettingsPage: React.FC = () => {
     setIsDeleting(true);
     try {
       await authApi.deleteAccount({
-        password: deletePassword,
+        password: isGoogleUser ? undefined : deletePassword,
         deleteStuff
       });
 
@@ -212,75 +212,77 @@ export const SettingsPage: React.FC = () => {
           </div>
 
           {/* Security & Password Card */}
-          <div className="glass-panel p-8 rounded-3xl border border-slate-800 bg-slate-900/10">
-            <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2 font-display">
-              <Lock className="w-5 h-5 text-purple-400" />
-              Update Password
-            </h3>
+          {!isGoogleUser && (
+            <div className="glass-panel p-8 rounded-3xl border border-slate-800 bg-slate-900/10">
+              <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2 font-display">
+                <Lock className="w-5 h-5 text-purple-400" />
+                Update Password
+              </h3>
 
-            <form onSubmit={handlePasswordSubmit} className="space-y-6">
-              {/* Current Password */}
-              {!isGoogleUser ? (
+              <form onSubmit={handlePasswordSubmit} className="space-y-6">
+                {/* Current Password */}
+                {!isGoogleUser ? (
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest font-display">Current Password</label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                      <input
+                        type="password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className="w-full bg-slate-950/40 border border-slate-800 focus:border-primary/50 rounded-xl py-3 pl-11 pr-4 text-slate-200 outline-none text-sm input-glow transition-all"
+                        placeholder="••••••••"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-sky-500/10 border border-sky-500/20 rounded-2xl text-sky-400 text-xs leading-relaxed">
+                    <p className="font-semibold">Connected with Google</p>
+                    <p className="mt-1 text-sky-400/80">You don't have an account password set. You can set a password below to enable direct email/password sign-in and authorize actions like account deletion.</p>
+                  </div>
+                )}
+
+                {/* New Password */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest font-display">Current Password</label>
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest font-display">New Password</label>
                   <div className="relative">
                     <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                     <input
                       type="password"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
                       className="w-full bg-slate-950/40 border border-slate-800 focus:border-primary/50 rounded-xl py-3 pl-11 pr-4 text-slate-200 outline-none text-sm input-glow transition-all"
-                      placeholder="••••••••"
+                      placeholder="Min. 8 characters"
                     />
                   </div>
                 </div>
-              ) : (
-                <div className="p-4 bg-sky-500/10 border border-sky-500/20 rounded-2xl text-sky-400 text-xs leading-relaxed">
-                  <p className="font-semibold">Connected with Google</p>
-                  <p className="mt-1 text-sky-400/80">You don't have an account password set. You can set a password below to enable direct email/password sign-in and authorize actions like account deletion.</p>
-                </div>
-              )}
 
-              {/* New Password */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest font-display">New Password</label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full bg-slate-950/40 border border-slate-800 focus:border-primary/50 rounded-xl py-3 pl-11 pr-4 text-slate-200 outline-none text-sm input-glow transition-all"
-                    placeholder="Min. 8 characters"
-                  />
+                {/* Confirm New Password */}
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest font-display">Confirm New Password</label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full bg-slate-950/40 border border-slate-800 focus:border-primary/50 rounded-xl py-3 pl-11 pr-4 text-slate-200 outline-none text-sm input-glow transition-all"
+                      placeholder="Re-enter new password"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Confirm New Password */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest font-display">Confirm New Password</label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full bg-slate-950/40 border border-slate-800 focus:border-primary/50 rounded-xl py-3 pl-11 pr-4 text-slate-200 outline-none text-sm input-glow transition-all"
-                    placeholder="Re-enter new password"
-                  />
+                <div className="flex justify-end pt-4 border-t border-slate-800/50">
+                  <button
+                    type="submit"
+                    className="bg-gradient-to-r from-sky-500 to-purple-500 hover:scale-[1.02] text-white px-6 py-3 rounded-xl font-semibold text-xs shadow-lg shadow-blue-500/10 active:scale-[0.98] transition-all cursor-pointer"
+                  >
+                    Update Password
+                  </button>
                 </div>
-              </div>
-
-              <div className="flex justify-end pt-4 border-t border-slate-800/50">
-                <button
-                  type="submit"
-                  className="bg-gradient-to-r from-sky-500 to-purple-500 hover:scale-[1.02] text-white px-6 py-3 rounded-xl font-semibold text-xs shadow-lg shadow-blue-500/10 active:scale-[0.98] transition-all cursor-pointer"
-                >
-                  Update Password
-                </button>
-              </div>
-            </form>
-          </div>
+              </form>
+            </div>
+          )}
 
           {/* Danger Zone */}
           <div className="glass-panel p-8 rounded-3xl border border-red-900/30 bg-red-950/5">
@@ -493,21 +495,23 @@ export const SettingsPage: React.FC = () => {
               </div>
 
               {/* Password Verification */}
-              <div className="space-y-2 pt-2 border-t border-slate-800/60">
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest font-display">Confirm Identity</label>
-                <p className="text-[11px] text-slate-500">Enter your password to verify and authorize deletion.</p>
-                <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <input
-                    type="password"
-                    value={deletePassword}
-                    onChange={(e) => setDeletePassword(e.target.value)}
-                    required
-                    className="w-full bg-slate-950/40 border border-slate-800 focus:border-red-500/50 rounded-xl py-3 pl-11 pr-4 text-slate-200 outline-none text-sm input-glow transition-all"
-                    placeholder="Enter your account password"
-                  />
+              {!isGoogleUser && (
+                <div className="space-y-2 pt-2 border-t border-slate-800/60">
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest font-display">Confirm Identity</label>
+                  <p className="text-[11px] text-slate-500">Enter your password to verify and authorize deletion.</p>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input
+                      type="password"
+                      value={deletePassword}
+                      onChange={(e) => setDeletePassword(e.target.value)}
+                      required
+                      className="w-full bg-slate-950/40 border border-slate-800 focus:border-red-500/50 rounded-xl py-3 pl-11 pr-4 text-slate-200 outline-none text-sm input-glow transition-all"
+                      placeholder="Enter your account password"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Actions */}
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-800/60">

@@ -26,6 +26,7 @@ export const Layout: React.FC = () => {
   const [userEmail, setUserEmail] = useState("");
   const [userRole, setUserRole] = useState("TEAM_MEMBER");
   const [userCode, setUserCode] = useState("");
+  const [copiedCode, setCopiedCode] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -38,6 +39,23 @@ export const Layout: React.FC = () => {
   const [forceError, setForceError] = useState("");
 
   useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const user = await authApi.getCurrentUser();
+        if (user) {
+          if (user.name) setUserName(user.name);
+          if (user.email) setUserEmail(user.email);
+          if (user.role) setUserRole(user.role);
+          if (user.userId) {
+            setUserCode(user.userId);
+            sessionStorage.setItem("userIdCode", user.userId);
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to fetch fresh user profile", err);
+      }
+    };
+
     const token = sessionStorage.getItem("accessToken");
     if (token) {
       try {
@@ -46,7 +64,10 @@ export const Layout: React.FC = () => {
           if (payload.name) setUserName(payload.name);
           if (payload.email) setUserEmail(payload.email);
           if (payload.role) setUserRole(payload.role);
-          if (payload.userId) setUserCode(payload.userId);
+          if (payload.userId) {
+            setUserCode(payload.userId);
+            sessionStorage.setItem("userIdCode", payload.userId);
+          }
           
           if (payload.isGoogleUser) {
             setIsGoogleUserForceSetup(true);
@@ -58,6 +79,8 @@ export const Layout: React.FC = () => {
         console.warn("Could not parse token in Layout", e);
       }
     }
+
+    fetchUser();
   }, []);
 
   const handleForcePasswordSubmit = async (e: React.FormEvent) => {
@@ -94,6 +117,13 @@ export const Layout: React.FC = () => {
     } finally {
       setIsForceSubmitting(false);
     }
+  };
+
+  const handleCopyCode = () => {
+    if (!userCode) return;
+    navigator.clipboard.writeText(userCode);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
   };
 
   useEffect(() => {
@@ -365,8 +395,18 @@ export const Layout: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider block mb-0.5">User ID</label>
-                <p className="text-xs font-semibold text-white font-mono">{userCode}</p>
+                <label className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider block mb-0.5">Your User ID</label>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-xs font-semibold text-white font-mono bg-slate-950/40 px-3 py-1.5 rounded-lg border border-slate-800/85">{userCode || "N/A"}</p>
+                  <button
+                    type="button"
+                    onClick={handleCopyCode}
+                    disabled={!userCode}
+                    className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer text-[10px] font-semibold flex items-center gap-1 shrink-0"
+                  >
+                    {copiedCode ? "Copied!" : "Copy"}
+                  </button>
+                </div>
               </div>
             </div>
 

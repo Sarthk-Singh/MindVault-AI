@@ -54,7 +54,9 @@ export const WorkspaceView: React.FC = () => {
 
   const [inviteLink, setInviteLink] = useState("");
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [generateLinkError, setGenerateLinkError] = useState("");
   const [copySuccess, setCopySuccess] = useState(false);
+  const [myUserIdCopied, setMyUserIdCopied] = useState(false);
 
   // Forms
   const inviteForm = useForm<InviteInput>({
@@ -126,6 +128,7 @@ export const WorkspaceView: React.FC = () => {
     setSearchedUser(null);
     setSearchError("");
     setInviteLink("");
+    setGenerateLinkError("");
   };
 
   const handleCloseInvite = () => {
@@ -134,6 +137,7 @@ export const WorkspaceView: React.FC = () => {
     setSearchedUser(null);
     setSearchError("");
     setInviteLink("");
+    setGenerateLinkError("");
     inviteForm.reset();
   };
 
@@ -169,11 +173,13 @@ export const WorkspaceView: React.FC = () => {
 
   const handleGenerateLink = async () => {
     setIsGeneratingLink(true);
+    setGenerateLinkError("");
     try {
       const link = await workspacesApi.generateInviteLink(id!);
       setInviteLink(link);
     } catch (err: any) {
-      console.error(err);
+      console.error("Failed to generate invite link:", err);
+      setGenerateLinkError(err?.response?.data?.message || "Failed to generate invite link. Please try again.");
     } finally {
       setIsGeneratingLink(false);
     }
@@ -183,6 +189,14 @@ export const WorkspaceView: React.FC = () => {
     navigator.clipboard.writeText(inviteLink);
     setCopySuccess(true);
     setTimeout(() => setCopySuccess(false), 2000);
+  };
+
+  const handleCopyMyUserId = () => {
+    const myId = sessionStorage.getItem("userIdCode") || "";
+    if (!myId) return;
+    navigator.clipboard.writeText(myId);
+    setMyUserIdCopied(true);
+    setTimeout(() => setMyUserIdCopied(false), 2000);
   };
 
   const handleInviteSubmit = (data: InviteInput) => {
@@ -400,6 +414,28 @@ export const WorkspaceView: React.FC = () => {
             {/* Tab 1: Invite by ID */}
             {inviteTab === "id" && (
               <div className="space-y-4">
+                {/* Note & User's own ID Reference */}
+                <div className="p-3 bg-slate-950/40 border border-slate-800 rounded-xl space-y-2 text-xs">
+                  <p className="text-slate-400 leading-relaxed">
+                    Share your ID so others can invite you, or enter someone else's ID below to invite them.
+                  </p>
+                  {sessionStorage.getItem("userIdCode") && (
+                    <div className="flex items-center justify-between bg-slate-900/50 p-2 rounded-lg border border-slate-850">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Your ID:</span>
+                        <span className="font-mono text-sky-400 font-bold">{sessionStorage.getItem("userIdCode")}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCopyMyUserId}
+                        className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded text-[10px] font-semibold transition-colors cursor-pointer"
+                      >
+                        {myUserIdCopied ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest font-display">User ID Code</label>
                   <p className="text-[11px] text-slate-500">Search for a user by their unique code (e.g. MV-XXXX) to directly add them.</p>
@@ -476,21 +512,26 @@ export const WorkspaceView: React.FC = () => {
                 </div>
 
                 {!inviteLink ? (
-                  <button
-                    type="button"
-                    onClick={handleGenerateLink}
-                    disabled={isGeneratingLink}
-                    className="w-full py-3.5 bg-gradient-to-r from-sky-500 to-purple-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-500/20 hover:opacity-90 transition-all cursor-pointer flex justify-center items-center gap-2"
-                  >
-                    {isGeneratingLink ? (
-                      <span>Generating Link...</span>
-                    ) : (
-                      <>
-                        <Link className="w-4 h-4" />
-                        <span>Generate Invitation Link</span>
-                      </>
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={handleGenerateLink}
+                      disabled={isGeneratingLink}
+                      className="w-full py-3.5 bg-gradient-to-r from-sky-500 to-purple-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-500/20 hover:opacity-90 transition-all cursor-pointer flex justify-center items-center gap-2"
+                    >
+                      {isGeneratingLink ? (
+                        <span>Generating Link...</span>
+                      ) : (
+                        <>
+                          <Link className="w-4 h-4" />
+                          <span>Generate Invitation Link</span>
+                        </>
+                      )}
+                    </button>
+                    {generateLinkError && (
+                      <p className="text-error text-xs text-center">{generateLinkError}</p>
                     )}
-                  </button>
+                  </div>
                 ) : (
                   <div className="space-y-3 animate-in fade-in duration-300">
                     <div className="flex gap-2">
