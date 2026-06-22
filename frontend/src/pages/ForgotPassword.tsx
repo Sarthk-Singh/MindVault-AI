@@ -6,7 +6,6 @@ import { useMutation } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { authApi } from "../lib/api/auth";
 import { ShaderBackground } from "../components/ShaderBackground";
-import { CustomCursor } from "../components/CustomCursor";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 
 const forgotPasswordSchema = z.object({
@@ -40,7 +39,6 @@ export const ForgotPassword: React.FC = () => {
   return (
     <div className="min-h-screen relative flex items-center justify-center p-6 text-slate-200">
       <ShaderBackground />
-      <CustomCursor />
 
       {/* Layout Container */}
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 w-full max-w-[1200px] items-center gap-10">

@@ -37,7 +37,6 @@
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "prisma": "^6.19.3",
-    "resend": "^6.14.0",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3",
     "zod": "^4.4.3"

@@ -22,7 +22,6 @@ const envSchema = zod_1.z.object({
     GOOGLE_CLIENT_ID: zod_1.z.string().optional().default(""),
     GOOGLE_CLIENT_SECRET: zod_1.z.string().optional().default(""),
     GOOGLE_CALLBACK_URL: zod_1.z.string().optional().default("http://localhost:3001/api/auth/google/callback"),
-    RESEND_API_KEY: zod_1.z.string().optional(),
     googleSMTP_HOST: zod_1.z.string().optional().default("smtp.gmail.com"),
     SMTP_PORT: zod_1.z.coerce.number().int().positive().default(465),
     SMTP_SECURE: zod_1.z.preprocess((val) => val === "true" || val === true || val === "1", zod_1.z.boolean()).default(true),

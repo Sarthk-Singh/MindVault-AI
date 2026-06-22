@@ -7,13 +7,12 @@ import { useNavigate, Link } from "react-router-dom";
 import { authApi } from "../lib/api/auth";
 import { Eye, EyeOff } from "lucide-react";
 import { ShaderBackground } from "../components/ShaderBackground";
-import { CustomCursor } from "../components/CustomCursor";
 
 const registerSchema = z.object({
   name: z.string().min(1, "Full Name is required."),
   email: z.string().email("Please enter a valid work email."),
   password: z.string().min(8, "Password must be at least 8 characters long."),
-  role: z.enum(["ADMIN", "WORKSPACE_MANAGER", "MEETING_OWNER", "TEAM_MEMBER"]).default("TEAM_MEMBER")
+  role: z.string().optional()
 });
 
 type RegisterInput = z.infer<typeof registerSchema>;
@@ -55,7 +54,6 @@ export const Register: React.FC = () => {
   return (
     <div className="min-h-screen relative flex items-center justify-center p-6 text-slate-200">
       <ShaderBackground />
-      <CustomCursor />
 
       {/* Layout Container */}
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 w-full max-w-[1200px] items-center gap-10">

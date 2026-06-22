@@ -16,7 +16,6 @@ import {
   Lock
 } from "lucide-react";
 import { NeuralCanvas } from "./NeuralCanvas";
-import { CustomCursor } from "./CustomCursor";
 import { authApi } from "../lib/api/auth";
 
 export const Layout: React.FC = () => {
@@ -194,7 +193,6 @@ export const Layout: React.FC = () => {
       {/* Background visual components */}
       <div className="mesh-gradient" />
       <NeuralCanvas opacity={0.3} particleCount={40} />
-      <CustomCursor />
 
       {/* Sidebar Navigation */}
       <aside className="w-72 glass-panel border-r border-slate-800 hidden md:flex flex-col z-20 sticky top-0 h-screen">

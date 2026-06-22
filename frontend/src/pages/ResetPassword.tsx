@@ -6,7 +6,6 @@ import { useMutation } from "@tanstack/react-query";
 import { useParams, Link } from "react-router-dom";
 import { authApi } from "../lib/api/auth";
 import { ShaderBackground } from "../components/ShaderBackground";
-import { CustomCursor } from "../components/CustomCursor";
 import { Eye, EyeOff, CheckCircle2 } from "lucide-react";
 
 const resetPasswordSchema = z
@@ -53,7 +52,6 @@ export const ResetPassword: React.FC = () => {
     return (
       <div className="min-h-screen relative flex items-center justify-center p-6 text-slate-200">
         <ShaderBackground />
-        <CustomCursor />
         <div className="relative z-10 w-full max-w-[480px] glass-card rounded-[24px] p-8 md:p-10 shadow-2xl text-center space-y-4">
           <h3 className="text-xl font-bold text-red-400">Invalid Link</h3>
           <p className="text-sm text-white/60">
@@ -72,7 +70,6 @@ export const ResetPassword: React.FC = () => {
   return (
     <div className="min-h-screen relative flex items-center justify-center p-6 text-slate-200">
       <ShaderBackground />
-      <CustomCursor />
 
       {/* Layout Container */}
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 w-full max-w-[1200px] items-center gap-10">
