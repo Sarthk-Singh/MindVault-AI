@@ -10,24 +10,24 @@ export const AuthCallback: React.FC = () => {
     const refresh = searchParams.get("refresh");
 
     if (token && refresh) {
-      sessionStorage.setItem("accessToken", token);
-      sessionStorage.setItem("refreshToken", refresh);
+      localStorage.setItem("accessToken", token);
+      localStorage.setItem("refreshToken", refresh);
 
       // Parse name and userId from token payload
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
         const name = payload.name || "Google User";
-        sessionStorage.setItem("userName", name);
+        localStorage.setItem("userName", name);
         if (payload.userId) {
-          sessionStorage.setItem("userIdCode", payload.userId);
+          localStorage.setItem("userIdCode", payload.userId);
         }
       } catch (e) {
-        sessionStorage.setItem("userName", "Google User");
+        localStorage.setItem("userName", "Google User");
       }
 
-      const redirect = sessionStorage.getItem("loginRedirect");
+      const redirect = searchParams.get("redirect") || localStorage.getItem("loginRedirect");
       if (redirect) {
-        sessionStorage.removeItem("loginRedirect");
+        localStorage.removeItem("loginRedirect");
         navigate(redirect);
       } else {
         navigate("/");

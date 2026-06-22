@@ -8,6 +8,7 @@ const crypto_1 = __importDefault(require("crypto"));
 const prisma_1 = require("../../config/prisma");
 const errorHandler_1 = require("../../middleware/errorHandler");
 const env_1 = require("../../config/env");
+const emailService_1 = require("../../services/emailService");
 exports.workspaceService = {
     async createWorkspace(name, ownerId) {
         try {
@@ -467,6 +468,67 @@ exports.workspaceService = {
             if (error instanceof errorHandler_1.AppError)
                 throw error;
             throw new errorHandler_1.AppError("Failed to update member role", 500);
+        }
+    },
+    async inviteByEmail(workspaceId, currentUserId, email) {
+        try {
+            const workspace = await prisma_1.prisma.workspace.findUnique({
+                where: { id: workspaceId }
+            });
+            if (!workspace) {
+                throw new errorHandler_1.AppError("Workspace not found", 404);
+            }
+            const inviterMember = await prisma_1.prisma.workspaceMember.findUnique({
+                where: {
+                    workspaceId_userId: {
+                        workspaceId,
+                        userId: currentUserId
+                    }
+                },
+                include: { user: true }
+            });
+            if (!inviterMember) {
+                throw new errorHandler_1.AppError("Forbidden: You must be a member of this workspace to invite others", 403);
+            }
+            const inviterName = inviterMember.user.name;
+            // Check if user with this email already exists in the database
+            const existingUser = await prisma_1.prisma.user.findUnique({
+                where: { email }
+            });
+            if (existingUser) {
+                // Check if already a member
+                const alreadyMember = await prisma_1.prisma.workspaceMember.findUnique({
+                    where: {
+                        workspaceId_userId: {
+                            workspaceId,
+                            userId: existingUser.id
+                        }
+                    }
+                });
+                if (alreadyMember) {
+                    throw new errorHandler_1.AppError("User is already a member of this workspace", 400);
+                }
+            }
+            // Always generate an invite token and send join link via email
+            const token = crypto_1.default.randomUUID();
+            const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+            const invite = await prisma_1.prisma.workspaceInvite.create({
+                data: {
+                    workspaceId,
+                    token,
+                    expiresAt,
+                    createdById: currentUserId,
+                    usedBy: []
+                }
+            });
+            const inviteUrl = `${env_1.env.FRONTEND_URL}/join/${invite.token}`;
+            await emailService_1.emailService.sendWorkspaceInviteEmail(email, workspace.name, inviterName, inviteUrl);
+            return { success: true };
+        }
+        catch (error) {
+            if (error instanceof errorHandler_1.AppError)
+                throw error;
+            throw new errorHandler_1.AppError("Failed to invite user by email", 500);
         }
     }
 };

@@ -48,7 +48,7 @@ export const Layout: React.FC = () => {
           if (user.role) setUserRole(user.role);
           if (user.userId) {
             setUserCode(user.userId);
-            sessionStorage.setItem("userIdCode", user.userId);
+            localStorage.setItem("userIdCode", user.userId);
           }
         }
       } catch (err) {
@@ -56,7 +56,7 @@ export const Layout: React.FC = () => {
       }
     };
 
-    const token = sessionStorage.getItem("accessToken");
+    const token = localStorage.getItem("accessToken");
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
@@ -66,7 +66,7 @@ export const Layout: React.FC = () => {
           if (payload.role) setUserRole(payload.role);
           if (payload.userId) {
             setUserCode(payload.userId);
-            sessionStorage.setItem("userIdCode", payload.userId);
+            localStorage.setItem("userIdCode", payload.userId);
           }
           
           if (payload.isGoogleUser) {
@@ -128,7 +128,7 @@ export const Layout: React.FC = () => {
 
   useEffect(() => {
     const updateUserName = () => {
-      const savedUser = sessionStorage.getItem("userName");
+      const savedUser = localStorage.getItem("userName");
       if (savedUser) {
         setUserName(savedUser);
       }
@@ -160,9 +160,9 @@ export const Layout: React.FC = () => {
   }, [showProfileMenu]);
 
   const handleLogout = () => {
-    sessionStorage.removeItem("accessToken");
-    sessionStorage.removeItem("refreshToken");
-    sessionStorage.removeItem("userName");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("userName");
     navigate("/login");
   };
 

@@ -44,6 +44,7 @@ model User {
   createdMeetings  Meeting[]         @relation("MeetingCreator")
   auditLogs        AuditLog[]
   workspaceInvites WorkspaceInvite[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model Workspace {
@@ -171,5 +172,15 @@ model AuditLog {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   action    String
   metadata  Json
+  createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
   createdAt DateTime @default(now())
 }

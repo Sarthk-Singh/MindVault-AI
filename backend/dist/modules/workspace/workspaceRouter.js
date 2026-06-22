@@ -29,6 +29,9 @@ const validateBody = (schema) => (req, _res, next) => {
 const inviteByIdSchema = zod_1.z.object({
     userId: zod_1.z.string().min(1)
 });
+const inviteByEmailSchema = zod_1.z.object({
+    email: zod_1.z.string().email()
+});
 const updateRoleSchema = zod_1.z.object({
     role: zod_1.z.enum(["ADMIN", "TEAM_MEMBER", "MEETING_OWNER", "WORKSPACE_MANAGER"])
 });
@@ -42,6 +45,7 @@ exports.workspaceRouter.post("/:id/invite", validateBody(inviteMemberSchema), wo
 exports.workspaceRouter.post("/:id/invite-link", workspaceController_1.workspaceController.generateInviteLink);
 exports.workspaceRouter.post("/join/:token", workspaceController_1.workspaceController.joinWorkspace);
 exports.workspaceRouter.post("/:id/invite-by-id", validateBody(inviteByIdSchema), workspaceController_1.workspaceController.inviteById);
+exports.workspaceRouter.post("/:id/invite-by-email", validateBody(inviteByEmailSchema), workspaceController_1.workspaceController.inviteByEmail);
 exports.workspaceRouter.get("/:id/members", workspaceController_1.workspaceController.getMembers);
 exports.workspaceRouter.delete("/:id/members/:userId", workspaceController_1.workspaceController.removeMember);
 exports.workspaceRouter.post("/:id/leave", workspaceController_1.workspaceController.leaveWorkspace);

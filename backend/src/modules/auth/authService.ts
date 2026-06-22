@@ -1,9 +1,11 @@
 import bcrypt from "bcryptjs";
 import jwt, { type Secret, type SignOptions } from "jsonwebtoken";
+import crypto from "crypto";
 import { type UserRole } from "@prisma/client";
 import { env } from "../../config/env";
 import { prisma } from "../../config/prisma";
 import { AppError } from "../../middleware/errorHandler";
+import { emailService } from "../../services/emailService";
 
 export type JwtPayload = {
   id: string;
@@ -431,6 +433,82 @@ export const authService = {
     } catch (error) {
       if (error instanceof AppError) throw error;
       throw new AppError("Failed to fetch current user profile", 500);
+    }
+  },
+
+  async forgotPassword(email: string) {
+    try {
+      const user = await runDbOperation(
+        prisma.user.findUnique({ where: { email } }),
+        "looking up user by email for password reset"
+      );
+
+      if (!user) {
+        // Return success to prevent email enumeration
+        return { success: true };
+      }
+
+      const token = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      await runDbOperation(
+        prisma.passwordResetToken.create({
+          data: {
+            userId: user.id,
+            token,
+            expiresAt
+          }
+        }),
+        "creating password reset token"
+      );
+
+      const resetUrl = `${env.FRONTEND_URL}/reset-password/${token}`;
+      await emailService.sendPasswordResetEmail(email, resetUrl);
+
+      return { success: true };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError("Failed to request password reset", 500);
+    }
+  },
+
+  async resetPassword(token: string, newPassword: string) {
+    try {
+      const resetToken = await runDbOperation(
+        prisma.passwordResetToken.findUnique({
+          where: { token },
+          include: { user: true }
+        }),
+        "looking up password reset token"
+      );
+
+      if (!resetToken || resetToken.used || resetToken.expiresAt < new Date()) {
+        throw new AppError("Invalid or expired password reset token", 400);
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+      await runDbOperation(
+        prisma.$transaction([
+          prisma.user.update({
+            where: { id: resetToken.userId },
+            data: {
+              password: hashedPassword,
+              isGoogleUser: false
+            }
+          }),
+          prisma.passwordResetToken.update({
+            where: { id: resetToken.id },
+            data: { used: true }
+          })
+        ]),
+        "resetting user password"
+      );
+
+      return { success: true };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError("Failed to reset password", 500);
     }
   }
 };

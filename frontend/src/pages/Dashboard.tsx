@@ -37,7 +37,7 @@ export const Dashboard: React.FC = () => {
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [inviteInput, setInviteInput] = useState("");
   const [inviteError, setInviteError] = useState("");
-  const userName = sessionStorage.getItem("userName") || "Alex Rivera";
+  const userName = localStorage.getItem("userName") || "Alex Rivera";
 
   // Forms
   const {

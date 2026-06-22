@@ -52,9 +52,9 @@ export const SettingsPage: React.FC = () => {
 
       showToast("Your account has been successfully deleted.");
       setTimeout(() => {
-        sessionStorage.removeItem("accessToken");
-        sessionStorage.removeItem("refreshToken");
-        sessionStorage.removeItem("userName");
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("userName");
         window.location.href = "/login";
       }, 1500);
     } catch (err: any) {
@@ -66,11 +66,11 @@ export const SettingsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    const savedName = sessionStorage.getItem("userName");
+    const savedName = localStorage.getItem("userName");
     if (savedName) setName(savedName);
     
     // Attempt to parse email from token if available, otherwise use a placeholder
-    const token = sessionStorage.getItem("accessToken");
+    const token = localStorage.getItem("accessToken");
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
@@ -102,8 +102,8 @@ export const SettingsPage: React.FC = () => {
       return;
     }
     
-    // Save to sessionStorage so Layout/Sidebar renders the updated name
-    sessionStorage.setItem("userName", name.trim());
+    // Save to localStorage so Layout/Sidebar renders the updated name
+    localStorage.setItem("userName", name.trim());
     showToast("Profile name updated successfully!");
     
     // Trigger custom event or dispatch so Layout can re-render immediately

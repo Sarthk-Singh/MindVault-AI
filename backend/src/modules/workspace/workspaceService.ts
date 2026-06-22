@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { prisma } from "../../config/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { env } from "../../config/env";
+import { emailService } from "../../services/emailService";
 
 export const workspaceService = {
   async createWorkspace(name: string, ownerId: string) {
@@ -505,6 +506,82 @@ export const workspaceService = {
     } catch (error) {
       if (error instanceof AppError) throw error;
       throw new AppError("Failed to update member role", 500);
+    }
+  },
+
+  async inviteByEmail(workspaceId: string, currentUserId: string, email: string) {
+    try {
+      const workspace = await prisma.workspace.findUnique({
+        where: { id: workspaceId }
+      });
+
+      if (!workspace) {
+        throw new AppError("Workspace not found", 404);
+      }
+
+      const inviterMember = await prisma.workspaceMember.findUnique({
+        where: {
+          workspaceId_userId: {
+            workspaceId,
+            userId: currentUserId
+          }
+        },
+        include: { user: true }
+      });
+
+      if (!inviterMember) {
+        throw new AppError("Forbidden: You must be a member of this workspace to invite others", 403);
+      }
+
+      const inviterName = inviterMember.user.name;
+
+      // Check if user with this email already exists in the database
+      const existingUser = await prisma.user.findUnique({
+        where: { email }
+      });
+
+      if (existingUser) {
+        // Check if already a member
+        const alreadyMember = await prisma.workspaceMember.findUnique({
+          where: {
+            workspaceId_userId: {
+              workspaceId,
+              userId: existingUser.id
+            }
+          }
+        });
+
+        if (alreadyMember) {
+          throw new AppError("User is already a member of this workspace", 400);
+        }
+      }
+
+      // Always generate an invite token and send join link via email
+      const token = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+      const invite = await prisma.workspaceInvite.create({
+        data: {
+          workspaceId,
+          token,
+          expiresAt,
+          createdById: currentUserId,
+          usedBy: []
+        }
+      });
+
+      const inviteUrl = `${env.FRONTEND_URL}/join/${invite.token}`;
+      await emailService.sendWorkspaceInviteEmail(
+        email,
+        workspace.name,
+        inviterName,
+        inviteUrl
+      );
+
+      return { success: true };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError("Failed to invite user by email", 500);
     }
   }
 };

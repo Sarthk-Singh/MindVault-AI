@@ -37,6 +37,10 @@ const inviteByIdSchema = z.object({
   userId: z.string().min(1)
 });
 
+const inviteByEmailSchema = z.object({
+  email: z.string().email()
+});
+
 const updateRoleSchema = z.object({
   role: z.enum(["ADMIN", "TEAM_MEMBER", "MEETING_OWNER", "WORKSPACE_MANAGER"])
 });
@@ -52,6 +56,7 @@ workspaceRouter.post("/:id/invite", validateBody(inviteMemberSchema), workspaceC
 workspaceRouter.post("/:id/invite-link", workspaceController.generateInviteLink);
 workspaceRouter.post("/join/:token", workspaceController.joinWorkspace);
 workspaceRouter.post("/:id/invite-by-id", validateBody(inviteByIdSchema), workspaceController.inviteById);
+workspaceRouter.post("/:id/invite-by-email", validateBody(inviteByEmailSchema), workspaceController.inviteByEmail);
 
 workspaceRouter.get("/:id/members", workspaceController.getMembers);
 workspaceRouter.delete("/:id/members/:userId", workspaceController.removeMember);

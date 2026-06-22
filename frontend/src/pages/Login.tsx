@@ -33,9 +33,9 @@ export const Login: React.FC = () => {
     mutationFn: authApi.login,
     onSuccess: (data) => {
       const name = data.user?.name || "Alex Rivera";
-      sessionStorage.setItem("userName", name);
+      localStorage.setItem("userName", name);
       if (data.user?.userId) {
-        sessionStorage.setItem("userIdCode", data.user.userId);
+        localStorage.setItem("userIdCode", data.user.userId);
       }
       
       const params = new URLSearchParams(window.location.search);
@@ -128,7 +128,7 @@ export const Login: React.FC = () => {
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
                   <label className="text-xs font-semibold text-white/80 block" htmlFor="password">Password</label>
-                  <a href="#" className="text-[11px] text-blue-400 hover:underline">Forgot password?</a>
+                  <Link to="/forgot-password" className="text-[11px] text-blue-400 hover:underline">Forgot password?</Link>
                 </div>
                 <div className="relative group">
                   <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/40 transition-colors group-focus-within:text-blue-400">lock</span>
@@ -173,7 +173,7 @@ export const Login: React.FC = () => {
             <div className="mt-8 text-center space-y-6">
               <p className="text-sm text-white/60">
                 Don't have an account? 
-                <Link className="text-blue-400 font-semibold hover:underline ml-1" to="/register">Register</Link>
+                <Link className="text-blue-400 font-semibold hover:underline ml-1" to={`/register${window.location.search}`}>Register</Link>
               </p>
               <div className="relative flex items-center py-2">
                 <div className="flex-grow border-t border-white/10"></div>
@@ -186,12 +186,12 @@ export const Login: React.FC = () => {
                   const params = new URLSearchParams(window.location.search);
                   const redirect = params.get("redirect");
                   if (redirect) {
-                    sessionStorage.setItem("loginRedirect", redirect);
+                    localStorage.setItem("loginRedirect", redirect);
                   }
 
                   const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
                   const baseUrl = apiUrl.endsWith("/api") ? apiUrl.slice(0, -4) : apiUrl;
-                  window.location.href = `${baseUrl}/api/auth/google`;
+                  window.location.href = `${baseUrl}/api/auth/google?state=${encodeURIComponent(redirect || "")}`;
                 }}
                 className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white hover:bg-slate-100 text-slate-900 rounded-xl text-sm font-semibold shadow-md transition-all active:scale-[0.98] cursor-pointer"
               >

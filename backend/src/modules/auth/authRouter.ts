@@ -32,6 +32,15 @@ const updatePasswordSchema = z.object({
   newPassword: z.string().min(8)
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email()
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  newPassword: z.string().min(8)
+});
+
 const validateBody =
   (schema: z.ZodType): RequestHandler =>
   (req, _res, next) => {
@@ -59,14 +68,28 @@ authRouter.get("/delete-preview", verifyToken, authController.deletePreview);
 authRouter.post("/delete-account", verifyToken, validateBody(deleteAccountSchema), authController.deleteAccount);
 authRouter.post("/update-password", verifyToken, validateBody(updatePasswordSchema), authController.updatePassword);
 authRouter.get("/me", verifyToken, authController.getCurrentUser);
+authRouter.post("/forgot-password", validateBody(forgotPasswordSchema), authController.forgotPassword);
+authRouter.post("/reset-password", validateBody(resetPasswordSchema), authController.resetPassword);
 
-authRouter.get("/google", passport.authenticate("google", { scope: ["profile", "email"], session: false }));
+authRouter.get(
+  "/google",
+  (req, res, next) => {
+    const state = req.query.state as string;
+    passport.authenticate("google", {
+      scope: ["profile", "email"],
+      session: false,
+      state: state
+    })(req, res, next);
+  }
+);
 
 authRouter.get(
   "/google/callback",
   passport.authenticate("google", { failureRedirect: "/login", session: false }),
   (req, res) => {
     const user = req.user as any;
-    res.redirect(`${env.FRONTEND_URL}/auth/callback?token=${user.accessToken}&refresh=${user.refreshToken}`);
+    const state = req.query.state as string;
+    const redirectParam = state ? `&redirect=${encodeURIComponent(state)}` : "";
+    res.redirect(`${env.FRONTEND_URL}/auth/callback?token=${user.accessToken}&refresh=${user.refreshToken}${redirectParam}`);
   }
 );

@@ -58,6 +58,10 @@ export const WorkspaceView: React.FC = () => {
   const [generateLinkError, setGenerateLinkError] = useState("");
   const [copySuccess, setCopySuccess] = useState(false);
   const [myUserIdCopied, setMyUserIdCopied] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [isInvitingByEmail, setIsInvitingByEmail] = useState(false);
+  const [inviteByEmailSuccess, setInviteByEmailSuccess] = useState(false);
+  const [inviteByEmailError, setInviteByEmailError] = useState("");
   const [activeTab, setActiveTab] = useState<"meetings" | "members">("meetings");
   const [copiedLinkToken, setCopiedLinkToken] = useState<string | null>(null);
   const [confirmModal, setConfirmModal] = useState<{
@@ -91,7 +95,7 @@ export const WorkspaceView: React.FC = () => {
   });
 
   const getCurrentUserId = () => {
-    const token = sessionStorage.getItem("accessToken");
+    const token = localStorage.getItem("accessToken");
     if (!token) return "";
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
@@ -145,16 +149,6 @@ export const WorkspaceView: React.FC = () => {
   };
 
   // Mutations
-  const inviteMutation = useMutation({
-    mutationFn: (data: InviteInput) =>
-      workspacesApi.inviteMember(id!, data.email, data.role),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workspace", id] });
-      setIsInviteOpen(false);
-      inviteForm.reset();
-    }
-  });
-
   const createMeetingMutation = useMutation({
     mutationFn: (data: MeetingInput) =>
       meetingsApi.createMeeting(data.title, id!, data.date),
@@ -198,6 +192,10 @@ export const WorkspaceView: React.FC = () => {
     setSearchError("");
     setInviteLink("");
     setGenerateLinkError("");
+    setInviteEmail("");
+    setIsInvitingByEmail(false);
+    setInviteByEmailSuccess(false);
+    setInviteByEmailError("");
   };
 
   const handleCloseInvite = () => {
@@ -207,6 +205,10 @@ export const WorkspaceView: React.FC = () => {
     setSearchError("");
     setInviteLink("");
     setGenerateLinkError("");
+    setInviteEmail("");
+    setIsInvitingByEmail(false);
+    setInviteByEmailSuccess(false);
+    setInviteByEmailError("");
     inviteForm.reset();
   };
 
@@ -261,15 +263,29 @@ export const WorkspaceView: React.FC = () => {
   };
 
   const handleCopyMyUserId = () => {
-    const myId = sessionStorage.getItem("userIdCode") || "";
+    const myId = localStorage.getItem("userIdCode") || "";
     if (!myId) return;
     navigator.clipboard.writeText(myId);
     setMyUserIdCopied(true);
     setTimeout(() => setMyUserIdCopied(false), 2000);
   };
 
-  const handleInviteSubmit = (data: InviteInput) => {
-    inviteMutation.mutate(data);
+  const handleInviteByEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteEmail.trim()) return;
+    setIsInvitingByEmail(true);
+    setInviteByEmailError("");
+    setInviteByEmailSuccess(false);
+    try {
+      await workspacesApi.inviteByEmail(id!, inviteEmail.trim());
+      setInviteByEmailSuccess(true);
+      setInviteEmail("");
+      queryClient.invalidateQueries({ queryKey: ["workspace", id] });
+    } catch (err: any) {
+      setInviteByEmailError(err?.response?.data?.message || "Failed to send email invitation. Please try again.");
+    } finally {
+      setIsInvitingByEmail(false);
+    }
   };
 
   const handleMeetingSubmit = (data: MeetingInput) => {
@@ -642,11 +658,11 @@ export const WorkspaceView: React.FC = () => {
                   <p className="text-slate-400 leading-relaxed">
                     Share your ID so others can invite you, or enter someone else's ID below to invite them.
                   </p>
-                  {sessionStorage.getItem("userIdCode") && (
+                  {localStorage.getItem("userIdCode") && (
                     <div className="flex items-center justify-between bg-slate-900/50 p-2 rounded-lg border border-slate-850">
                       <div className="flex items-center gap-1.5">
                         <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Your ID:</span>
-                        <span className="font-mono text-sky-400 font-bold">{sessionStorage.getItem("userIdCode")}</span>
+                        <span className="font-mono text-sky-400 font-bold">{localStorage.getItem("userIdCode")}</span>
                       </div>
                       <button
                         type="button"
@@ -793,44 +809,40 @@ export const WorkspaceView: React.FC = () => {
 
             {/* Tab 3: Invite by Email */}
             {inviteTab === "email" && (
-              <form onSubmit={inviteForm.handleSubmit(handleInviteSubmit)} className="space-y-5">
-                {/* Member email */}
+              <form onSubmit={handleInviteByEmail} className="space-y-5">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest font-display">Invite via Email</label>
+                  <p className="text-[11px] text-slate-500">
+                    If the user has a MindVault AI account, they will be added directly and notified. If not, we will generate and email them a workspace invite link.
+                  </p>
+                </div>
+
+                {inviteByEmailSuccess && (
+                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs rounded-xl flex gap-2 items-start">
+                    <Check className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>Invitation email sent successfully!</span>
+                  </div>
+                )}
+
+                {inviteByEmailError && (
+                  <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-xl">
+                    {inviteByEmailError}
+                  </div>
+                )}
+
                 <div className="input-group relative">
                   <input
                     type="email"
                     placeholder=" "
                     id="invite-email"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    required
                     className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3.5 text-slate-200 outline-none input-glow transition-all duration-300 peer text-sm"
-                    {...inviteForm.register("email")}
                   />
                   <label htmlFor="invite-email" className="floating-label absolute left-4 top-3.5 text-slate-500 text-sm">
                     Work Email Address
                   </label>
-                  {inviteForm.formState.errors.email && (
-                    <p className="text-error text-xs mt-1 pl-1">{inviteForm.formState.errors.email.message}</p>
-                  )}
-                </div>
-
-                {/* Role setting */}
-                <div className="input-group relative">
-                  <select
-                    id="invite-role"
-                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3.5 text-slate-200 outline-none input-glow transition-all duration-300 peer text-sm appearance-none cursor-pointer"
-                    {...inviteForm.register("role")}
-                  >
-                    <option value="TEAM_MEMBER" className="bg-slate-900 text-slate-200">TEAM_MEMBER</option>
-                    <option value="WORKSPACE_MANAGER" className="bg-slate-900 text-slate-200">WORKSPACE_MANAGER</option>
-                    <option value="MEETING_OWNER" className="bg-slate-900 text-slate-200">MEETING_OWNER</option>
-                    <option value="ADMIN" className="bg-slate-900 text-slate-200">ADMIN</option>
-                  </select>
-                  <label htmlFor="invite-role" className="floating-label absolute left-4 top-3.5 text-slate-500 text-sm">
-                    Role Permission
-                  </label>
-                  <div className="absolute right-4 top-3.5 text-slate-500 pointer-events-none">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-800/50">
@@ -843,10 +855,10 @@ export const WorkspaceView: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    disabled={inviteMutation.isPending}
+                    disabled={isInvitingByEmail || !inviteEmail.trim()}
                     className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0ea5e9] to-[#a855f7] text-white text-sm font-semibold shadow-lg shadow-blue-500/10 hover:opacity-90 transition-all disabled:opacity-50 cursor-pointer"
                   >
-                    {inviteMutation.isPending ? "Inviting..." : "Send Invitation"}
+                    {isInvitingByEmail ? "Sending..." : "Send Invitation"}
                   </button>
                 </div>
               </form>

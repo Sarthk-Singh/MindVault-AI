@@ -14,7 +14,7 @@ export const JoinWorkspace: React.FC = () => {
 
   useEffect(() => {
     const join = async () => {
-      const accessToken = sessionStorage.getItem("accessToken");
+      const accessToken = localStorage.getItem("accessToken");
       
       if (!accessToken) {
         // Redirect to login, saving the redirect path

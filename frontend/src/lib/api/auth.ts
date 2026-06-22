@@ -19,10 +19,10 @@ export const authApi = {
   async login(data: any): Promise<AuthResponse> {
     const response = await api.post<AuthResponse>("/auth/login", data);
     const { accessToken, refreshToken, user } = response.data;
-    sessionStorage.setItem("accessToken", accessToken);
-    sessionStorage.setItem("refreshToken", refreshToken);
+    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
     if (user && user.name) {
-      sessionStorage.setItem("userName", user.name);
+      localStorage.setItem("userName", user.name);
     }
     return response.data;
   },
@@ -63,6 +63,16 @@ export const authApi = {
 
   async getCurrentUser(): Promise<User> {
     const response = await api.get<User>("/auth/me");
+    return response.data;
+  },
+
+  async forgotPassword(email: string): Promise<{ success: boolean }> {
+    const response = await api.post<{ success: boolean }>("/auth/forgot-password", { email });
+    return response.data;
+  },
+
+  async resetPassword(token: string, newPassword: string): Promise<{ success: boolean }> {
+    const response = await api.post<{ success: boolean }>("/auth/reset-password", { token, newPassword });
     return response.data;
   }
 };

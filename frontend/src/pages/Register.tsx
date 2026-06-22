@@ -36,8 +36,15 @@ export const Register: React.FC = () => {
   const registerMutation = useMutation({
     mutationFn: authApi.register,
     onSuccess: (_, variables) => {
-      sessionStorage.setItem("userName", variables.name || "Alex Rivera");
-      navigate("/");
+      localStorage.setItem("userName", variables.name || "Alex Rivera");
+      
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get("redirect");
+      if (redirect) {
+        navigate(redirect);
+      } else {
+        navigate("/");
+      }
     }
   });
 
@@ -206,7 +213,7 @@ export const Register: React.FC = () => {
             <div className="mt-8 text-center space-y-6">
               <p className="text-sm text-white/60">
                 Already have an account? 
-                <Link className="text-blue-400 font-semibold hover:underline ml-1" to="/login">Login</Link>
+                <Link className="text-blue-400 font-semibold hover:underline ml-1" to={`/login${window.location.search}`}>Login</Link>
               </p>
               <div className="relative flex items-center py-2">
                 <div className="flex-grow border-t border-white/10"></div>
@@ -216,9 +223,14 @@ export const Register: React.FC = () => {
               <button 
                 type="button"
                 onClick={() => {
+                  const params = new URLSearchParams(window.location.search);
+                  const redirect = params.get("redirect");
+                  if (redirect) {
+                    localStorage.setItem("loginRedirect", redirect);
+                  }
                   const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
                   const baseUrl = apiUrl.endsWith("/api") ? apiUrl.slice(0, -4) : apiUrl;
-                  window.location.href = `${baseUrl}/api/auth/google`;
+                  window.location.href = `${baseUrl}/api/auth/google?state=${encodeURIComponent(redirect || "")}`;
                 }}
                 className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white hover:bg-slate-100 text-slate-900 rounded-xl text-sm font-semibold shadow-md transition-all active:scale-[0.98] cursor-pointer"
               >

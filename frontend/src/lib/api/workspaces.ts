@@ -97,6 +97,11 @@ export const workspacesApi = {
   async updateMemberRole(workspaceId: string, userId: string, role: string): Promise<WorkspaceMember> {
     const response = await api.patch<{ member: WorkspaceMember }>(`/workspaces/${workspaceId}/members/${userId}/role`, { role });
     return response.data.member;
+  },
+
+  async inviteByEmail(workspaceId: string, email: string): Promise<{ success: boolean }> {
+    const response = await api.post<{ success: boolean }>(`/workspaces/${workspaceId}/invite-by-email`, { email });
+    return response.data;
   }
 };
 

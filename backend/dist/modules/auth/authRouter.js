@@ -31,6 +31,13 @@ const updatePasswordSchema = zod_1.z.object({
     currentPassword: zod_1.z.string().optional(),
     newPassword: zod_1.z.string().min(8)
 });
+const forgotPasswordSchema = zod_1.z.object({
+    email: zod_1.z.string().email()
+});
+const resetPasswordSchema = zod_1.z.object({
+    token: zod_1.z.string().min(1),
+    newPassword: zod_1.z.string().min(8)
+});
 const validateBody = (schema) => (req, _res, next) => {
     const result = schema.safeParse(req.body);
     if (!result.success) {
@@ -51,8 +58,19 @@ exports.authRouter.get("/delete-preview", authMiddleware_1.verifyToken, authCont
 exports.authRouter.post("/delete-account", authMiddleware_1.verifyToken, validateBody(deleteAccountSchema), authController_1.authController.deleteAccount);
 exports.authRouter.post("/update-password", authMiddleware_1.verifyToken, validateBody(updatePasswordSchema), authController_1.authController.updatePassword);
 exports.authRouter.get("/me", authMiddleware_1.verifyToken, authController_1.authController.getCurrentUser);
-exports.authRouter.get("/google", passport_1.default.authenticate("google", { scope: ["profile", "email"], session: false }));
+exports.authRouter.post("/forgot-password", validateBody(forgotPasswordSchema), authController_1.authController.forgotPassword);
+exports.authRouter.post("/reset-password", validateBody(resetPasswordSchema), authController_1.authController.resetPassword);
+exports.authRouter.get("/google", (req, res, next) => {
+    const state = req.query.state;
+    passport_1.default.authenticate("google", {
+        scope: ["profile", "email"],
+        session: false,
+        state: state
+    })(req, res, next);
+});
 exports.authRouter.get("/google/callback", passport_1.default.authenticate("google", { failureRedirect: "/login", session: false }), (req, res) => {
     const user = req.user;
-    res.redirect(`${env_1.env.FRONTEND_URL}/auth/callback?token=${user.accessToken}&refresh=${user.refreshToken}`);
+    const state = req.query.state;
+    const redirectParam = state ? `&redirect=${encodeURIComponent(state)}` : "";
+    res.redirect(`${env_1.env.FRONTEND_URL}/auth/callback?token=${user.accessToken}&refresh=${user.refreshToken}${redirectParam}`);
 });

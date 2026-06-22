@@ -173,6 +173,20 @@ export const workspaceController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  async inviteByEmail(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        throw new AppError("Authentication is required", 401);
+      }
+      const { id } = req.params;
+      const { email } = req.body;
+      const result = await workspaceService.inviteByEmail(String(id), req.user.id, email);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
   }
 };
 
