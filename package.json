@@ -10,5 +10,8 @@
     "dev:frontend": "npm run dev --workspace @mindvault-ai/frontend",
     "build:backend": "npm run build --workspace @mindvault-ai/backend",
     "build:frontend": "npm run build --workspace @mindvault-ai/frontend"
+  },
+  "dependencies": {
+    "concurrently": "^10.0.3"
   }
 }
