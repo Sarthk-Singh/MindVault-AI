@@ -9,7 +9,7 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": ["node", "cors", "nodemailer"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
