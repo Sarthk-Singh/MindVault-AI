@@ -39,10 +39,11 @@
     "prisma": "^6.19.3",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3",
-    "zod": "^4.4.3"
-  },
-  "devDependencies": {
+    "zod": "^4.4.3",
     "@types/cors": "^2.8.19",
     "@types/nodemailer": "^8.0.1"
+  },
+  "devDependencies": {
+    
   }
 }
