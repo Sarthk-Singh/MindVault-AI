@@ -31,7 +31,7 @@ app.use("/api", aiRouter_1.aiRouter);
 app.use("/api", uploadRouter_1.uploadRouter);
 app.use("/api/search", searchRouter_1.searchRouter);
 app.use(errorHandler_1.errorHandler);
-const server = app.listen(env_1.env.PORT, "127.0.0.1", () => {
+const server = app.listen(env_1.env.PORT, () => {
     console.log(`MindVault-AI backend listening on port ${env_1.env.PORT}`);
 });
 const shutdown = () => {
